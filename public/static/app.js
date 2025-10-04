@@ -66,14 +66,14 @@
                     const response = await fetch(`/api${endpoint}`, config);
                     
                     if (!response.ok) {
-                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                        console.warn(`API Call ${endpoint} failed: ${response.status}`);
+                        return { success: false, error: `${response.status} ${response.statusText}` };
                     }
                     
                     return await response.json();
                 } catch (error) {
-                    console.error('API Call failed:', error);
-                    showNotification('Fehler bei der Datenübertragung', 'error');
-                    throw error;
+                    console.warn('API Call failed:', error);
+                    return { success: false, error: error.message };
                 }
             },
 
@@ -82,16 +82,8 @@
                 return this.call('/hello');
             },
 
-            async getSubstrates() {
-                return this.call('/substrates');
-            },
-
             async getProtocols() {
                 return this.call('/protocols');
-            },
-
-            async getInventory() {
-                return this.call('/inventory');
             }
         };
     }
@@ -149,16 +141,19 @@
         try {
             showLoadingState(true);
             
-            // Test API connection
+            // Test API connection (silent, no error if fails)
             const helloData = await window.MushroomAPI.getHello();
-            console.log('API connected:', helloData);
+            if (helloData.success !== false) {
+                console.log('✅ API connected:', helloData);
+            } else {
+                console.log('⚠️ API not available, using fallback data');
+            }
             
-            // Load statistics
+            // Load statistics (with fallback data)
             await loadStatistics();
             
         } catch (error) {
-            console.error('Failed to load initial data:', error);
-            showNotification('Fehler beim Laden der Daten', 'error');
+            console.log('⚠️ Using offline mode:', error.message);
         } finally {
             showLoadingState(false);
         }

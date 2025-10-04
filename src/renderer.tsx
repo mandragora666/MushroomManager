@@ -8,8 +8,7 @@ export const renderer = jsxRenderer(({ children }) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Mushroom Manager - Pilzzucht Verwaltung</title>
         
-        {/* Tailwind CSS */}
-        <script src="https://cdn.tailwindcss.com"></script>
+        {/* Tailwind CSS wird durch eigenes CSS ersetzt */}
         
         {/* Font Awesome Icons */}
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />

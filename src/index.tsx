@@ -43,6 +43,16 @@ const mockProtocols = [
   }
 ];
 
+// API Routes
+app.get('/api/hello', (c) => {
+  return c.json({ 
+    message: 'Willkommen beim Mushroom Manager!',
+    version: '1.0.0-protocol-focus',
+    features: ['Zuchtprotokolle', 'Mobile-First Design', 'Glassmorphism'],
+    status: 'online'
+  })
+})
+
 // API Routes - Zuchtprotokolle
 app.get('/api/protocols', (c) => {
   return c.json({
@@ -66,47 +76,41 @@ app.get('/api/protocols/:id', (c) => {
 // Main Dashboard
 app.get('/', (c) => {
   return c.render(
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile-First Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">
-              🍄 Mushroom Manager
-            </h1>
-            <button id="themeToggle" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              🌙
-            </button>
-          </div>
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="header">
+        <div className="header-content">
+          <h1 className="header-title">
+            🍄 Mushroom Manager
+          </h1>
+          <button id="themeToggle" className="theme-toggle">
+            🌙
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pb-20">
-        {/* Statistics Cards */}
-        <div className="px-4 py-6">
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Aktive Protokolle</p>
-                  <p className="text-2xl font-bold text-gray-900" data-stat="protocols">${mockProtocols.length}</p>
-                </div>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <span className="text-lg">📋</span>
-                </div>
+      <main className="site-container">
+        <div className="pb-6">
+          {/* Statistics Cards */}
+          <div className="stats-grid mb-6">
+            <div className="stat-card">
+              <div className="stat-info">
+                <h3>Aktive Protokolle</h3>
+                <p data-stat="protocols">{mockProtocols.length}</p>
+              </div>
+              <div className="stat-icon stat-icon--green">
+                📋
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">In Fruchtung</p>
-                  <p className="text-2xl font-bold text-gray-900">1</p>
-                </div>
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <span className="text-lg">🍄</span>
-                </div>
+            <div className="stat-card">
+              <div className="stat-info">
+                <h3>In Fruchtung</h3>
+                <p>1</p>
+              </div>
+              <div className="stat-icon stat-icon--purple">
+                🍄
               </div>
             </div>
           </div>
@@ -115,7 +119,7 @@ app.get('/', (c) => {
           <div className="mb-6">
             <button 
               onclick="window.location.href = '/protocols/new'"
-              className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white p-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
+              className="btn btn-gradient w-full"
             >
               <span className="text-lg">➕</span>
               <span>Neues Zuchtprotokoll</span>
@@ -123,38 +127,56 @@ app.get('/', (c) => {
           </div>
 
           {/* Aktuelle Protokolle */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+          <div className="glass-card--lg">
+            <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
               📋 Aktuelle Protokolle
             </h2>
             
-            <div id="protocols-list" className="space-y-3">
+            <div className="protocol-grid">
               {mockProtocols.map(protocol => (
-                <div key={protocol.id} className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-900 text-sm">{protocol.title}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      protocol.status === 'Fruchtung' ? 'bg-green-100 text-green-800' :
-                      protocol.status === 'Durchwachsung' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
+                <div key={protocol.id} className="protocol-card">
+                  <div className="protocol-header">
+                    <h3 className="protocol-title">{protocol.title}</h3>
+                    <span className={`protocol-status ${
+                      protocol.status === 'Fruchtung' ? 'status-fruchtung' :
+                      protocol.status === 'Durchwachsung' ? 'status-durchwachsung' :
+                      'status-other'
                     }`}>
                       {protocol.status}
                     </span>
                   </div>
                   
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p><span className="font-medium">Art:</span> {protocol.species}</p>
-                    <p><span className="font-medium">Phase:</span> {protocol.phase}</p>
-                    <p><span className="font-medium">Temp:</span> {protocol.temperature}</p>
+                  <div className="protocol-meta">
+                    <div className="protocol-meta-item">
+                      <span className="protocol-meta-label">Art</span>
+                      <span className="protocol-meta-value">{protocol.species}</span>
+                    </div>
+                    <div className="protocol-meta-item">
+                      <span className="protocol-meta-label">Phase</span>
+                      <span className="protocol-meta-value">{protocol.phase}</span>
+                    </div>
+                    <div className="protocol-meta-item">
+                      <span className="protocol-meta-label">Temperatur</span>
+                      <span className="protocol-meta-value">{protocol.temperature}</span>
+                    </div>
+                    <div className="protocol-meta-item">
+                      <span className="protocol-meta-label">Start</span>
+                      <span className="protocol-meta-value">{protocol.startDate}</span>
+                    </div>
                   </div>
                   
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                    <span className="text-xs text-gray-500">Start: {protocol.startDate}</span>
+                  <div className="protocol-actions">
                     <button 
                       onclick={`viewProtocol(${protocol.id})`}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-800"
+                      className="btn btn-primary flex-1"
                     >
-                      Details →
+                      Details
+                    </button>
+                    <button 
+                      onclick={`editProtocol(${protocol.id})`}
+                      className="btn btn-glass"
+                    >
+                      Bearbeiten
                     </button>
                   </div>
                 </div>
@@ -165,25 +187,22 @@ app.get('/', (c) => {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
-        <div className="flex justify-around items-center">
-          <button className="nav-item active flex flex-col items-center py-2 px-3">
-            <span className="text-lg mb-1">🏠</span>
-            <span className="text-xs font-medium">Dashboard</span>
-          </button>
-          <button className="nav-item flex flex-col items-center py-2 px-3" onclick="window.location.href = '/protocols'">
-            <span className="text-lg mb-1">📋</span>
-            <span className="text-xs">Protokolle</span>
-          </button>
-          <button className="nav-item flex flex-col items-center py-2 px-3" onclick="window.location.href = '/protocols/new'">
-            <span className="text-lg mb-1">➕</span>
-            <span className="text-xs">Neu</span>
-          </button>
-          <button className="nav-item flex flex-col items-center py-2 px-3" onclick="window.location.href = '/wiki'">
-            <span className="text-lg mb-1">📚</span>
-            <span className="text-xs">Wiki</span>
-          </button>
-        </div>
+      <nav className="bottom-nav">
+        <a href="/" className="nav-item active">
+          <span className="icon">🏠</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="/protocols" className="nav-item">
+          <span className="icon">📋</span>
+          <span>Protokolle</span>
+        </a>
+        <a href="/protocols/new" className="nav-item nav-action">
+          <span className="icon">➕</span>
+        </a>
+        <a href="/wiki" className="nav-item">
+          <span className="icon">📚</span>
+          <span>Wiki</span>
+        </a>
       </nav>
     </div>
   )
