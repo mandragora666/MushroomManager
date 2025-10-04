@@ -84,6 +84,13 @@
 
             async getProtocols() {
                 return this.call('/protocols');
+            },
+
+            async createProtocol(protocolData) {
+                return this.call('/protocols', {
+                    method: 'POST',
+                    body: JSON.stringify(protocolData)
+                });
             }
         };
     }
@@ -113,6 +120,15 @@
                 showNotification('Protokoll gelöscht', 'success');
                 setTimeout(() => window.location.reload(), 1000);
             }
+        };
+
+        // Protocol form functions
+        window.saveProtocol = function() {
+            handleProtocolSubmit(false);
+        };
+
+        window.saveDraft = function() {
+            handleProtocolSubmit(true);
         };
 
         // Keyboard shortcuts
@@ -360,6 +376,225 @@
             });
         }
     };
+
+    // Protocol Form Handling
+    async function handleProtocolSubmit(isDraft = false) {
+        const form = document.getElementById('protocolForm');
+        if (!form) return;
+
+        try {
+            showLoadingState(true);
+
+            // Collect form data
+            const formData = new FormData(form);
+            const protocolData = {};
+
+            // Convert FormData to object
+            for (let [key, value] of formData.entries()) {
+                protocolData[key] = value;
+            }
+
+            // Add draft status
+            protocolData.isDraft = isDraft;
+
+            // Validate required fields (nur bei nicht-Entwurf)
+            if (!isDraft && !validateProtocolForm(protocolData)) {
+                return;
+            }
+
+            // Send to API
+            const result = await window.MushroomAPI.createProtocol(protocolData);
+
+            if (result.success) {
+                showNotification(
+                    isDraft ? 'Entwurf gespeichert!' : 'Protokoll erfolgreich erstellt!', 
+                    'success'
+                );
+
+                // Redirect nach kurzer Pause
+                setTimeout(() => {
+                    if (isDraft) {
+                        window.location.href = `/protocols/${result.protocol.id}/edit`;
+                    } else {
+                        window.location.href = `/protocols/${result.protocol.id}`;
+                    }
+                }, 1500);
+            } else {
+                throw new Error(result.error || 'Unbekannter Fehler beim Speichern');
+            }
+
+        } catch (error) {
+            console.error('Fehler beim Speichern:', error);
+            showNotification(
+                `Fehler beim Speichern: ${error.message}`, 
+                'error'
+            );
+        } finally {
+            showLoadingState(false);
+        }
+    }
+
+    // Form validation
+    function validateProtocolForm(data) {
+        const requiredFields = {
+            title: 'Protokoll-Name',
+            species: 'Pilzart',
+            startDate: 'Startdatum',
+            status: 'Aktuelle Phase',
+            substrate: 'Substrat-Zusammensetzung',
+            inoculation: 'Inokulations-Methode',
+            temperature: 'Temperatur',
+            humidity: 'Luftfeuchtigkeit'
+        };
+
+        const errors = [];
+
+        // Check required fields
+        for (let [field, label] of Object.entries(requiredFields)) {
+            if (!data[field] || data[field].trim() === '') {
+                errors.push(`${label} ist ein Pflichtfeld`);
+            }
+        }
+
+        // Validate start date (not in future)
+        if (data.startDate) {
+            const startDate = new Date(data.startDate);
+            const today = new Date();
+            today.setHours(23, 59, 59, 999); // End of today
+
+            if (startDate > today) {
+                errors.push('Startdatum kann nicht in der Zukunft liegen');
+            }
+        }
+
+        // Validate numeric fields
+        if (data.substrateWeight && (isNaN(data.substrateWeight) || data.substrateWeight <= 0)) {
+            errors.push('Substratgewicht muss eine positive Zahl sein');
+        }
+
+        if (data.expectedYield && (isNaN(data.expectedYield) || data.expectedYield <= 0)) {
+            errors.push('Erwarteter Ertrag muss eine positive Zahl sein');
+        }
+
+        // Show errors if any
+        if (errors.length > 0) {
+            showNotification(
+                'Bitte korrigiere folgende Fehler:\n• ' + errors.join('\n• '), 
+                'error'
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    // Form helpers
+    function initProtocolForm() {
+        const form = document.getElementById('protocolForm');
+        if (!form) return;
+
+        // Set default values
+        const startDateInput = document.getElementById('startDate');
+        if (startDateInput && !startDateInput.value) {
+            startDateInput.value = new Date().toISOString().split('T')[0];
+        }
+
+        // Auto-completion and suggestions
+        addFormEnhancements();
+
+        // Form change detection
+        let formChanged = false;
+        form.addEventListener('input', () => {
+            formChanged = true;
+        });
+
+        // Warn before leaving unsaved form
+        window.addEventListener('beforeunload', (e) => {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = 'Du hast ungespeicherte Änderungen. Möchtest du wirklich die Seite verlassen?';
+            }
+        });
+
+        // Save draft periodically
+        setInterval(() => {
+            if (formChanged) {
+                saveDraftSilently();
+            }
+        }, 2 * 60 * 1000); // Every 2 minutes
+    }
+
+    function addFormEnhancements() {
+        // Add tooltips to form fields
+        const helpTexts = document.querySelectorAll('.form-help');
+        helpTexts.forEach(help => {
+            const input = help.parentElement.querySelector('.form-input');
+            if (input) {
+                input.setAttribute('title', help.textContent);
+            }
+        });
+
+        // Species-specific substrate suggestions
+        const speciesSelect = document.getElementById('species');
+        const substrateField = document.getElementById('substrate');
+        
+        if (speciesSelect && substrateField) {
+            const substrateSuggestions = {
+                'Pleurotus ostreatus': 'Stroh (500g) + Gips (20g) + Kalk (10g) + Wasser (400ml)',
+                'Pleurotus ostreatus - Hybrid': 'Masters Mix: Sojabohnen (500g) + Buchensägemehl (500g) + Gips (20g) + Wasser (400ml)',
+                'Lentinula edodes': 'Laubholzspäne (800g) + Kleie (150g) + Gips (30g) + Wasser (600ml)',
+                'Hericium erinaceus': 'Laubholzspäne (700g) + Kleie (200g) + Gips (20g) + Wasser (500ml)',
+                'Agaricus bisporus': 'Pferdemist-Kompost (1000g) + Torf (200g) + Kalk (30g)'
+            };
+
+            speciesSelect.addEventListener('change', () => {
+                const suggestion = substrateSuggestions[speciesSelect.value];
+                if (suggestion && !substrateField.value) {
+                    substrateField.value = suggestion;
+                    substrateField.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+                    setTimeout(() => {
+                        substrateField.style.backgroundColor = '';
+                    }, 2000);
+                }
+            });
+        }
+    }
+
+    async function saveDraftSilently() {
+        try {
+            const form = document.getElementById('protocolForm');
+            if (!form) return;
+
+            const formData = new FormData(form);
+            const protocolData = {};
+
+            for (let [key, value] of formData.entries()) {
+                protocolData[key] = value;
+            }
+
+            protocolData.isDraft = true;
+
+            // Only save if we have minimum data
+            if (protocolData.title && protocolData.title.trim()) {
+                await window.MushroomAPI.createProtocol(protocolData);
+                
+                // Show subtle feedback
+                const saveIndicator = document.createElement('div');
+                saveIndicator.textContent = '💾 Entwurf automatisch gespeichert';
+                saveIndicator.className = 'fixed top-4 right-4 bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm z-50';
+                document.body.appendChild(saveIndicator);
+                
+                setTimeout(() => saveIndicator.remove(), 2000);
+            }
+        } catch (error) {
+            console.warn('Auto-save failed:', error);
+        }
+    }
+
+    // Initialize form when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        initProtocolForm();
+    });
 
     // Console welcome message
     console.log(`
