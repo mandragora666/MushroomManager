@@ -1,0 +1,6 @@
+DEPLOYMENT_TRIGGER=responsive-design-fix
+TIMESTAMP=$(date)
+COMMIT_HASH=$(git rev-parse HEAD)
+
+This file triggers Cloudflare Pages deployment
+Latest responsive design changes should be included
