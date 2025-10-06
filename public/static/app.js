@@ -1,4 +1,6 @@
 // Mushroom Manager - JavaScript für Interaktivität und Dark Mode
+// Version: Cache-Bust-2024-10-06-V2
+// Fixed: Protocol label formatting with proper colons and spacing
 (function() {
     'use strict';
     
