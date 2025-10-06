@@ -29,22 +29,36 @@
 - ✅ **Status-System** (Durchwachsung, Fruchtung, etc.)
 - ✅ **Responsive Protokoll-Cards** für alle Bildschirmgrößen
 
+### Protokoll-Erstellung (NEU! ✨)
+- ✅ **Vollständiges Erstellungsformular** (/protocols/new)
+- ✅ **8 Formular-Bereiche** mit 20+ Eingabefeldern:
+  - 🍄 **Grunddaten**: Name, Pilzart, Startdatum, Phase
+  - 🌾 **Substrat & Inokulation**: Zusammensetzung, Gewicht, Methode
+  - 🌡️ **Umgebungsbedingungen**: Temperatur, Luftfeuchtigkeit, Belüftung
+  - 📦 **Container & Setup**: Typ, Größe, Standort, erwarteter Ertrag
+  - 📝 **Notizen & Ziele**: Freier Textbereich
+- ✅ **Intelligente Eingabe-Hilfen**:
+  - Pilzarten-spezifische Substrat-Vorschläge
+  - Formular-Validierung mit Fehlermeldungen
+  - Auto-Vervollständigung und Tooltips
+- ✅ **Draft-System**: Automatisches Speichern alle 2 Minuten
+- ✅ **Responsive Design**: Desktop-Sidebar + Mobile-Navigation
+
 ### API-Struktur (bereit für D1 Database)
 - ✅ **GET /api/protocols** - Alle Protokolle abrufen
-- ✅ **GET /api/protocols/:id** - Einzelnes Protokoll abrufen
-- ⏳ **POST /api/protocols** - Neues Protokoll erstellen (in Entwicklung)
+- ✅ **GET /api/protocols/:id** - Einzelnes Protokoll abrufen  
+- ✅ **POST /api/protocols** - Neues Protokoll erstellen mit Validierung
 - ⏳ **PUT /api/protocols/:id** - Protokoll bearbeiten (in Entwicklung)
 - ⏳ **DELETE /api/protocols/:id** - Protokoll löschen (in Entwicklung)
 
-## Nächste Entwicklungsschritte (Phase 1 Fortsetzung)
+## Nächste Entwicklungsschritte (Phase 2)
 
-### 📋 Noch zu implementieren (Zuchtprotokoll-Focus)
-- **Protokoll-Erstellung**: Vollständiges Formular (Pilzart, Substrat, Inokulation)
-- **Protokoll-Bearbeitung**: Bestehende Protokolle editieren
+### 📋 Noch zu implementieren
+- **D1 Database Migration**: Von Mock-Daten zu echter Cloudflare D1 SQLite
+- **Protokoll-Bearbeitung**: Bestehende Protokolle editieren (/protocols/:id/edit)
 - **Timeline-System**: Wachstumsphasen und Einträge dokumentieren  
-- **Foto-Upload**: Bis zu 10 Bilder pro Protokoll
-- **Flexible Datenstrukturen**: Pilzarten, Substratrezepte, Inokulationsmethoden
-- **Wachstumsphasen-Tracking**: Detaillierte Bedingungen (Temp/Feuchtigkeit)
+- **Foto-Upload**: Bis zu 10 Bilder pro Protokoll (Cloudflare R2)
+- **Erweiterte Features**: Suche, Filter, Export, Statistiken
 
 ## Datenmodell (Vorbereitet für D1 Database)
 

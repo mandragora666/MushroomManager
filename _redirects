@@ -1,0 +1,8 @@
+# Cloudflare Pages Redirects
+# SPA fallback for client-side routing (if needed in future)
+
+# API routes - handled by _worker.js
+/api/* 200! # Prevent redirect, handle by worker
+
+# All other routes served by worker
+/* 200!

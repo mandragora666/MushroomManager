@@ -1,0 +1,42 @@
+# 🍄 Mushroom Manager - Cloudflare Pages Configuration
+# Optimiert für Self-Deployment via Cloudflare Pages UI
+
+name = "mushroom-manager"
+compatibility_date = "2025-10-04"
+pages_build_output_dir = "./dist"
+
+# Node.js Kompatibilität für Hono Framework
+compatibility_flags = ["nodejs_compat"]
+
+# Build Konfiguration für Cloudflare Pages
+[build]
+command = "npm run build"
+cwd = "."
+
+# Environment Variables (optional)
+[vars]
+NODE_ENV = "production"
+
+# Future: D1 Database Configuration (uncomment when needed)
+# [[d1_databases]]
+# binding = "DB" 
+# database_name = "mushroom-manager-production"
+# database_id = "" # Will be filled after creating D1 database
+
+# Future: KV Storage Configuration (uncomment when needed) 
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "" # Will be filled after creating KV namespace
+
+# Future: R2 Storage Configuration (uncomment when needed)
+# [[r2_buckets]]
+# binding = "R2" 
+# bucket_name = "mushroom-manager-files"
+
+# Development configuration
+[env.development]
+vars = { NODE_ENV = "development" }
+
+# Preview configuration  
+[env.preview]
+vars = { NODE_ENV = "preview" }
