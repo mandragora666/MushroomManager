@@ -834,20 +834,20 @@ app.get('/', (c) => {
                   
                   <div className="protocol-meta">
                     <div className="protocol-meta-item">
-                      <span className="protocol-meta-label">Art</span>
-                      <span className="protocol-meta-value">{protocol.species}</span>
+                      <span className="protocol-meta-label">Art:</span>
+                      <span className="protocol-meta-value"> {protocol.species}</span>
                     </div>
                     <div className="protocol-meta-item">
-                      <span className="protocol-meta-label">Phase</span>
-                      <span className="protocol-meta-value">{protocol.phase}</span>
+                      <span className="protocol-meta-label">Phase:</span>
+                      <span className="protocol-meta-value"> {protocol.phase}</span>
                     </div>
                     <div className="protocol-meta-item">
-                      <span className="protocol-meta-label">Temperatur</span>
-                      <span className="protocol-meta-value">{protocol.temperature}</span>
+                      <span className="protocol-meta-label">Temperatur:</span>
+                      <span className="protocol-meta-value"> {protocol.temperature}</span>
                     </div>
                     <div className="protocol-meta-item">
-                      <span className="protocol-meta-label">Start</span>
-                      <span className="protocol-meta-value">{protocol.startDate}</span>
+                      <span className="protocol-meta-label">Start:</span>
+                      <span className="protocol-meta-value"> {protocol.startDate}</span>
                     </div>
                   </div>
                   
