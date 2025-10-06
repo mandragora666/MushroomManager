@@ -2,8 +2,10 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { renderer } from './renderer'
+import { DatabaseService } from './database'
+import type { Env } from './types'
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
 // Enable CORS for API routes
 app.use('/api/*', cors())
@@ -53,35 +55,88 @@ app.get('/api/hello', (c) => {
   })
 })
 
-// API Routes - Zuchtprotokolle
-app.get('/api/protocols', (c) => {
-  return c.json({
-    success: true,
-    protocols: mockProtocols,
-    count: mockProtocols.length
-  })
-})
+// API Routes - Zuchtprotokolle (with D1 Database)
+app.get('/api/protocols', async (c) => {
+  try {
+    // Fallback to mock data if no database
+    if (!c.env?.DB) {
+      return c.json({
+        success: true,
+        protocols: mockProtocols,
+        count: mockProtocols.length,
+        source: 'mock'
+      });
+    }
 
-app.get('/api/protocols/:id', (c) => {
-  const id = parseInt(c.req.param('id'));
-  const protocol = mockProtocols.find(p => p.id === id);
-  
-  if (!protocol) {
-    return c.json({ success: false, error: 'Protokoll nicht gefunden' }, 404);
+    const db = new DatabaseService(c.env.DB);
+    const protocols = await db.getAllProtocols();
+    
+    return c.json({
+      success: true,
+      protocols,
+      count: protocols.length,
+      source: 'database'
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    // Fallback to mock data on error
+    return c.json({
+      success: true,
+      protocols: mockProtocols,
+      count: mockProtocols.length,
+      source: 'mock_fallback'
+    });
   }
-  
-  return c.json({ success: true, protocol });
 })
 
-// Neues Protokoll erstellen (API Endpoint)
+app.get('/api/protocols/:id', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    
+    // Fallback to mock data if no database
+    if (!c.env?.DB) {
+      const protocol = mockProtocols.find(p => p.id === id);
+      if (!protocol) {
+        return c.json({ success: false, error: 'Protokoll nicht gefunden' }, 404);
+      }
+      return c.json({ success: true, protocol, source: 'mock' });
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const protocol = await db.getProtocolById(id);
+    
+    if (!protocol) {
+      return c.json({ success: false, error: 'Protokoll nicht gefunden' }, 404);
+    }
+    
+    // Load additional data
+    const phases = await db.getProtocolPhases(id);
+    const harvests = await db.getProtocolHarvests(id);
+    
+    return c.json({ 
+      success: true, 
+      protocol: {
+        ...protocol,
+        phases,
+        harvests
+      },
+      source: 'database'
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+// Neues Protokoll erstellen (API Endpoint with D1)
 app.post('/api/protocols', async (c) => {
   try {
     const data = await c.req.json();
     
     // Validierung der Pflichtfelder
-    const requiredFields = ['title', 'species', 'startDate', 'status', 'substrate', 'inoculation', 'temperature', 'humidity'];
+    const requiredFields = ['code', 'title', 'species_id'];
     for (const field of requiredFields) {
-      if (!data[field] || data[field].trim() === '') {
+      if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
         return c.json({
           success: false,
           error: `Pflichtfeld '${field}' fehlt oder ist leer`,
@@ -90,40 +145,84 @@ app.post('/api/protocols', async (c) => {
       }
     }
     
-    // Neues Protokoll erstellen
-    const newProtocol = {
-      id: mockProtocols.length + 1,
-      title: data.title.trim(),
-      species: data.species.trim(),
-      substrate: data.substrate.trim(),
-      inoculation: data.inoculation.trim(),
-      status: data.status.trim(),
-      startDate: data.startDate,
-      phase: data.status.trim(), // Setze Phase initial auf Status
-      temperature: data.temperature.trim(),
-      humidity: data.humidity.trim(),
-      // Optional fields
-      substrateWeight: data.substrateWeight ? parseInt(data.substrateWeight) : null,
-      inoculationAmount: data.inoculationAmount?.trim() || '',
-      airflow: data.airflow?.trim() || '',
-      lighting: data.lighting?.trim() || '',
-      container: data.container?.trim() || '',
-      containerSize: data.containerSize?.trim() || '',
-      location: data.location?.trim() || '',
-      expectedYield: data.expectedYield ? parseInt(data.expectedYield) : null,
-      notes: data.notes?.trim() || '',
-      photos: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Fallback to mock if no database
+    if (!c.env?.DB) {
+      const newProtocol = {
+        id: mockProtocols.length + 1,
+        title: data.title.trim(),
+        species: data.species || 'Unknown',
+        substrate: data.substrate || '',
+        inoculation: data.inoculation || '',
+        status: data.status || 'preparation',
+        startDate: data.startDate || new Date().toISOString().split('T')[0],
+        phase: data.status || 'preparation',
+        temperature: data.temperature || '',
+        humidity: data.humidity || '',
+        photos: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      mockProtocols.push(newProtocol);
+      return c.json({
+        success: true,
+        protocol: newProtocol,
+        message: 'Protokoll erfolgreich erstellt! (Mock-Modus)',
+        source: 'mock'
+      }, 201);
+    }
+
+    const db = new DatabaseService(c.env.DB);
     
-    // Zu Mock-Daten hinzufügen (später: zu D1 Database speichern)
-    mockProtocols.push(newProtocol);
+    // Check if code is unique
+    const isUnique = await db.isProtocolCodeUnique(data.code);
+    if (!isUnique) {
+      return c.json({
+        success: false,
+        error: `Protokoll-Code '${data.code}' ist bereits vergeben`,
+        field: 'code'
+      }, 400);
+    }
+    
+    // Create protocol
+    const protocolId = await db.createProtocol({
+      code: data.code.trim(),
+      title: data.title.trim(),
+      species_id: parseInt(data.species_id),
+      strain: data.strain?.trim(),
+      origin: data.origin?.trim(),
+      breeder: data.breeder?.trim(),
+      genetic_age: data.genetic_age ? parseInt(data.genetic_age) : undefined,
+      notes: data.notes?.trim()
+    });
+
+    // Create initial phase if provided
+    if (data.initial_phase) {
+      await db.createPhase({
+        protocol_id: protocolId,
+        phase_type: data.initial_phase.type || 'preparation',
+        phase_name: data.initial_phase.name || 'Vorbereitung',
+        start_date: data.initial_phase.start_date,
+        substrate_composition: data.initial_phase.substrate_composition,
+        substrate_weight_g: data.initial_phase.substrate_weight_g,
+        inoculation_method: data.initial_phase.inoculation_method,
+        container_type: data.initial_phase.container_type,
+        temperature_min: data.initial_phase.temperature_min,
+        temperature_max: data.initial_phase.temperature_max,
+        humidity_min: data.initial_phase.humidity_min,
+        humidity_max: data.initial_phase.humidity_max,
+        notes: data.initial_phase.notes
+      });
+    }
+    
+    // Get created protocol
+    const protocol = await db.getProtocolById(protocolId);
     
     return c.json({
       success: true,
-      protocol: newProtocol,
-      message: 'Protokoll erfolgreich erstellt!'
+      protocol,
+      message: 'Protokoll erfolgreich erstellt!',
+      source: 'database'
     }, 201);
     
   } catch (error) {
@@ -132,6 +231,165 @@ app.post('/api/protocols', async (c) => {
       success: false,
       error: 'Server-Fehler beim Speichern des Protokolls'
     }, 500);
+  }
+})
+
+// Dropdown Options API
+app.get('/api/dropdown/:category', async (c) => {
+  try {
+    const category = c.req.param('category');
+    
+    if (!c.env?.DB) {
+      // Mock dropdown data
+      const mockOptions = {
+        species: [
+          { id: 1, value: 'pleurotus_ostreatus', label: 'Austernpilz (Pleurotus ostreatus)' },
+          { id: 2, value: 'lentinula_edodes', label: 'Shiitake (Lentinula edodes)' },
+          { id: 3, value: 'hericium_erinaceus', label: 'Igelstachelbart (Hericium erinaceus)' }
+        ],
+        substrate_types: [
+          { id: 1, value: 'masters_mix', label: 'Masters Mix' },
+          { id: 2, value: 'straw', label: 'Stroh' },
+          { id: 3, value: 'hardwood_sawdust', label: 'Laubholzsägemehl' }
+        ]
+      };
+      
+      return c.json({
+        success: true,
+        options: mockOptions[category] || [],
+        source: 'mock'
+      });
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const options = await db.getDropdownOptions(category);
+    
+    return c.json({
+      success: true,
+      options,
+      source: 'database'
+    });
+  } catch (error) {
+    console.error('Dropdown options error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+app.get('/api/species', async (c) => {
+  try {
+    if (!c.env?.DB) {
+      const mockSpecies = [
+        { id: 1, scientific_name: 'Pleurotus ostreatus', common_name: 'Austernpilz', category: 'Pleurotus' },
+        { id: 2, scientific_name: 'Lentinula edodes', common_name: 'Shiitake', category: 'Lentinula' },
+        { id: 3, scientific_name: 'Hericium erinaceus', common_name: 'Igelstachelbart', category: 'Hericium' }
+      ];
+      
+      return c.json({
+        success: true,
+        species: mockSpecies,
+        source: 'mock'
+      });
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const species = await db.getAllSpecies();
+    
+    return c.json({
+      success: true,
+      species,
+      source: 'database'
+    });
+  } catch (error) {
+    console.error('Species API error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+app.post('/api/dropdown/:category', async (c) => {
+  try {
+    const category = c.req.param('category');
+    const data = await c.req.json();
+    
+    if (!c.env?.DB) {
+      return c.json({
+        success: false,
+        error: 'Database not available in development mode'
+      }, 503);
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const optionId = await db.createDropdownOption({
+      category,
+      value: data.value,
+      label: data.label,
+      description: data.description,
+      sort_order: data.sort_order || 0,
+      is_active: true
+    });
+    
+    return c.json({
+      success: true,
+      id: optionId,
+      message: 'Option erfolgreich hinzugefügt'
+    }, 201);
+  } catch (error) {
+    console.error('Create dropdown option error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+app.delete('/api/dropdown/:category/:id', async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    
+    if (!c.env?.DB) {
+      return c.json({
+        success: false,
+        error: 'Database not available in development mode'
+      }, 503);
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    await db.deleteDropdownOption(id);
+    
+    return c.json({
+      success: true,
+      message: 'Option erfolgreich gelöscht'
+    });
+  } catch (error) {
+    console.error('Delete dropdown option error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+// Statistics API
+app.get('/api/stats', async (c) => {
+  try {
+    if (!c.env?.DB) {
+      return c.json({
+        success: true,
+        stats: {
+          total_protocols: mockProtocols.length,
+          active_protocols: mockProtocols.filter(p => ['fruiting', 'colonization'].includes(p.status)).length,
+          completed_protocols: mockProtocols.filter(p => p.status === 'completed').length,
+          total_harvests: 0,
+          total_yield_kg: 0
+        },
+        source: 'mock'
+      });
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const stats = await db.getProtocolStats();
+    
+    return c.json({
+      success: true,
+      stats,
+      source: 'database'
+    });
+  } catch (error) {
+    console.error('Stats API error:', error);
+    return c.json({ success: false, error: 'Server error' }, 500);
   }
 })
 
@@ -204,7 +462,7 @@ app.get('/', (c) => {
             <div className="stat-card">
               <div className="stat-info">
                 <h3>Aktive Protokolle</h3>
-                <p data-stat="protocols">{mockProtocols.length}</p>
+                <p data-stat="protocols" data-api="/api/stats" data-field="active_protocols">{mockProtocols.length}</p>
               </div>
               <div className="stat-icon stat-icon--green">
                 📋

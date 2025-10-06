@@ -17,11 +17,11 @@ cwd = "."
 [vars]
 NODE_ENV = "production"
 
-# Future: D1 Database Configuration (uncomment when needed)
-# [[d1_databases]]
-# binding = "DB" 
-# database_name = "mushroom-manager-production"
-# database_id = "" # Will be filled after creating D1 database
+# D1 Database Configuration 
+[[d1_databases]]
+binding = "DB" 
+database_name = "mushroom-manager-production"
+database_id = "" # Will be filled after creating D1 database
 
 # Future: KV Storage Configuration (uncomment when needed) 
 # [[kv_namespaces]]
