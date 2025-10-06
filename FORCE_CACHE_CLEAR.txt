@@ -1,0 +1,23 @@
+CACHE CLEAR TRIGGER - 2024-10-06-15:30 - COMMIT f32fd96
+
+This file exists to trigger Cloudflare Pages cache invalidation.
+Every deployment should see this file change.
+
+Changes in this deployment:
+- Fixed protocol label formatting: "Art:", "Phase:", "Temperatur:", "Start:"
+- Added aggressive timestamp-based cache busting
+- Added no-cache meta tags to HTML head
+- Forced clean rebuild with cache clearing
+
+Build timestamp: 2024-10-06-15:30:00
+Commit: f32fd96
+Expected result: Protocol meta labels should show proper formatting with colons
+
+If you still see "ArtPleurotus ostreatus" instead of "Art: Pleurotus ostreatus", 
+try these browser steps:
+1. Hard refresh with Ctrl+F5 (Windows) or Cmd+Shift+R (Mac)
+2. Open in incognito/private browsing mode
+3. Clear browser cache completely
+4. Try different browser
+
+The server-side changes are definitely deployed, this is purely a client-side caching issue.
