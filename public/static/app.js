@@ -1147,9 +1147,51 @@
         }
     };
     
-    window.saveDraft = function() {
-        // TODO: Implement draft saving to localStorage
-        showNotification('💾 Entwurf gespeichert!', 'info');
+    window.saveDraft = async function() {
+        const form = document.getElementById('protocolForm');
+        if (!form) return;
+        
+        try {
+            // Collect form data for draft
+            const formData = new FormData(form);
+            const draftData = {};
+            
+            for (const [key, value] of formData.entries()) {
+                if (!key.startsWith('harvests[')) {
+                    draftData[key] = value;
+                }
+            }
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('protocol_draft', JSON.stringify({
+                timestamp: new Date().toISOString(),
+                data: draftData
+            }));
+            
+            showLoading('Entwurf wird gespeichert...');
+            
+            const response = await fetch('/api/protocols/draft', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(draftData)
+            });
+            
+            const result = await response.json();
+            hideLoading();
+            
+            if (result.success) {
+                showNotification('💾 Entwurf gespeichert!', 'success');
+            } else {
+                showNotification('❌ Fehler beim Speichern des Entwurfs', 'error');
+            }
+            
+        } catch (error) {
+            hideLoading();
+            showNotification('💾 Entwurf lokal gespeichert!', 'info');
+            console.error('Draft save error:', error);
+        }
     };
     
     // Utility functions for loading and notifications

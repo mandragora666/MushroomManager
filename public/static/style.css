@@ -563,9 +563,11 @@ body {
   color: var(--text-primary) !important;
 }
 
-/* Dark Mode spezifische Dropdown-Styles */
+/* Dark Mode spezifische Styles für alle Form-Elemente */
 html[data-theme="dark"] .dropdown-with-manage select,
-html[data-theme="dark"] select.form-input {
+html[data-theme="dark"] select.form-input,
+html[data-theme="dark"] input.form-input,
+html[data-theme="dark"] textarea.form-input {
   background: rgba(15, 23, 42, 0.8) !important;
   color: #F8FAFC !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
@@ -575,6 +577,22 @@ html[data-theme="dark"] .dropdown-with-manage select option,
 html[data-theme="dark"] select.form-input option {
   background: #0F172A !important;
   color: #F8FAFC !important;
+}
+
+/* Dark Mode für Modal Input-Felder */
+html[data-theme="dark"] .modal-content input.form-input,
+html[data-theme="dark"] .modal-content textarea,
+html[data-theme="dark"] .photo-description {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #F8FAFC !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Placeholder Text im Dark Mode */
+html[data-theme="dark"] input.form-input::placeholder,
+html[data-theme="dark"] textarea.form-input::placeholder,
+html[data-theme="dark"] .photo-description::placeholder {
+  color: #64748B !important;
 }
 
 .manage-btn {

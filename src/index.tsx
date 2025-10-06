@@ -249,23 +249,10 @@ app.get('/api/dropdown/:category', async (c) => {
     const category = c.req.param('category');
     
     if (!c.env?.DB) {
-      // Mock dropdown data
-      const mockOptions = {
-        species: [
-          { id: 1, value: 'pleurotus_ostreatus', label: 'Austernpilz (Pleurotus ostreatus)' },
-          { id: 2, value: 'lentinula_edodes', label: 'Shiitake (Lentinula edodes)' },
-          { id: 3, value: 'hericium_erinaceus', label: 'Igelstachelbart (Hericium erinaceus)' }
-        ],
-        substrate_types: [
-          { id: 1, value: 'masters_mix', label: 'Masters Mix' },
-          { id: 2, value: 'straw', label: 'Stroh' },
-          { id: 3, value: 'hardwood_sawdust', label: 'Laubholzsägemehl' }
-        ]
-      };
-      
+      // Use shared mock storage
       return c.json({
         success: true,
-        options: mockOptions[category] || [],
+        options: mockDropdownStorage[category] || [],
         source: 'mock'
       });
     }
@@ -314,16 +301,83 @@ app.get('/api/species', async (c) => {
   }
 })
 
+// Mock storage for dropdown options (development mode)
+const mockDropdownStorage = {
+  species: [
+    { id: 1, value: 'pleurotus_ostreatus', label: 'Pleurotus ostreatus (Austernpilz)' },
+    { id: 2, value: 'lentinula_edodes', label: 'Lentinula edodes (Shiitake)' },
+    { id: 3, value: 'hericium_erinaceus', label: 'Hericium erinaceus (Igelstachelbart)' }
+  ],
+  substrate_types: [
+    { id: 1, value: 'masters_mix', label: 'Masters Mix' },
+    { id: 2, value: 'straw', label: 'Stroh' },
+    { id: 3, value: 'hardwood_sawdust', label: 'Laubholzsägemehl' }
+  ],
+  inoculation_methods: [
+    { id: 1, value: 'liquid_culture', label: 'Flüssigkultur' },
+    { id: 2, value: 'grain_spawn', label: 'Kornbrut' },
+    { id: 3, value: 'agar', label: 'Agar-Kultur' }
+  ],
+  sterilization_methods: [
+    { id: 1, value: 'pressure_cooker', label: 'Dampfdruckkochtopf' },
+    { id: 2, value: 'steam', label: 'Dampf-Sterilisation' },
+    { id: 3, value: 'boiling', label: 'Abkochen' }
+  ],
+  container_types: [
+    { id: 1, value: 'grow_bag', label: 'Grow Bag (Zuchtbeutel)' },
+    { id: 2, value: 'monotub', label: 'Monotub (große Box)' },
+    { id: 3, value: 'mason_jar', label: 'Mason Jar (Einmachglas)' }
+  ],
+  fruiting_triggers: [
+    { id: 1, value: 'temperature_shock', label: 'Temperaturschock' },
+    { id: 2, value: 'humidity_increase', label: 'Luftfeuchtigkeit erhöhen' },
+    { id: 3, value: 'light_exposure', label: 'Lichtexposition' }
+  ]
+};
+
 app.post('/api/dropdown/:category', async (c) => {
   try {
     const category = c.req.param('category');
     const data = await c.req.json();
     
-    if (!c.env?.DB) {
+    // Validation
+    if (!data.label || !data.value) {
       return c.json({
         success: false,
-        error: 'Database not available in development mode'
-      }, 503);
+        error: 'Label und Value sind erforderlich'
+      }, 400);
+    }
+    
+    if (!c.env?.DB) {
+      // Mock mode - add to mock storage
+      if (!mockDropdownStorage[category]) {
+        mockDropdownStorage[category] = [];
+      }
+      
+      // Check for duplicate value
+      const exists = mockDropdownStorage[category].find(item => item.value === data.value);
+      if (exists) {
+        return c.json({
+          success: false,
+          error: 'Dieser Wert existiert bereits'
+        }, 400);
+      }
+      
+      const newId = Math.max(0, ...mockDropdownStorage[category].map(item => item.id)) + 1;
+      const newOption = {
+        id: newId,
+        value: data.value.trim(),
+        label: data.label.trim()
+      };
+      
+      mockDropdownStorage[category].push(newOption);
+      
+      return c.json({
+        success: true,
+        id: newId,
+        message: 'Option erfolgreich hinzugefügt (Mock-Modus)',
+        option: newOption
+      }, 201);
     }
 
     const db = new DatabaseService(c.env.DB);
@@ -349,13 +403,32 @@ app.post('/api/dropdown/:category', async (c) => {
 
 app.delete('/api/dropdown/:category/:id', async (c) => {
   try {
+    const category = c.req.param('category');
     const id = parseInt(c.req.param('id'));
     
     if (!c.env?.DB) {
+      // Mock mode - remove from mock storage
+      if (!mockDropdownStorage[category]) {
+        return c.json({
+          success: false,
+          error: 'Kategorie nicht gefunden'
+        }, 404);
+      }
+      
+      const index = mockDropdownStorage[category].findIndex(item => item.id === id);
+      if (index === -1) {
+        return c.json({
+          success: false,
+          error: 'Option nicht gefunden'
+        }, 404);
+      }
+      
+      mockDropdownStorage[category].splice(index, 1);
+      
       return c.json({
-        success: false,
-        error: 'Database not available in development mode'
-      }, 503);
+        success: true,
+        message: 'Option erfolgreich gelöscht (Mock-Modus)'
+      });
     }
 
     const db = new DatabaseService(c.env.DB);
@@ -368,6 +441,35 @@ app.delete('/api/dropdown/:category/:id', async (c) => {
   } catch (error) {
     console.error('Delete dropdown option error:', error);
     return c.json({ success: false, error: 'Server error' }, 500);
+  }
+})
+
+// Draft API - Entwurf speichern
+app.post('/api/protocols/draft', async (c) => {
+  try {
+    const data = await c.req.json();
+    
+    // Store draft in mock storage (in real app would be localStorage or DB)
+    const draft = {
+      id: 'draft_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      data: data
+    };
+    
+    // In development mode, just return success
+    return c.json({
+      success: true,
+      draft,
+      message: 'Entwurf gespeichert! (Mock-Modus - Daten werden nicht dauerhaft gespeichert)',
+      source: 'mock'
+    }, 201);
+    
+  } catch (error) {
+    console.error('Draft save error:', error);
+    return c.json({
+      success: false,
+      error: 'Fehler beim Speichern des Entwurfs'
+    }, 500);
   }
 })
 
