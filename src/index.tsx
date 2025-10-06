@@ -134,7 +134,7 @@ app.post('/api/protocols', async (c) => {
     const data = await c.req.json();
     
     // Validierung der Pflichtfelder
-    const requiredFields = ['code', 'title', 'species_id'];
+    const requiredFields = ['code', 'title'];
     for (const field of requiredFields) {
       if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
         return c.json({
@@ -143,6 +143,15 @@ app.post('/api/protocols', async (c) => {
           field
         }, 400);
       }
+    }
+    
+    // species_id validation (optional for mock mode)
+    if (data.species_id && (isNaN(parseInt(data.species_id)) || parseInt(data.species_id) <= 0)) {
+      return c.json({
+        success: false,
+        error: 'Bitte wählen Sie eine gültige Pilzart aus',
+        field: 'species_id'
+      }, 400);
     }
     
     // Fallback to mock if no database
@@ -1080,42 +1089,18 @@ app.get('/protocols/new', (c) => {
                   ></textarea>
                 </div>
 
-                {/* Foto-Upload Bereich für Myzel-Phase */}
+                {/* Flexibles Foto-Upload für Myzel-Phase */}
                 <div className="form-group form-group--full">
                   <label className="form-label">
                     📸 Fotos - Myzel Wachstumsphase
                   </label>
-                  <div className="photo-upload-area">
-                    <div className="photo-timeline">
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Tag 0<br/>Inokulation</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Tag 3-5<br/>Erste Fäden</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Tag 7-10<br/>Durchwachsung</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Tag 14+<br/>Vollständig</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
+                  <div className="flexible-photo-upload" data-phase="mycel">
+                    <div className="photo-upload-grid" id="mycel-photos">
+                      {/* Dynamically added photo slots will go here */}
                     </div>
+                    <button type="button" onclick="addPhotoSlot('mycel', 'Myzel-Phase')" className="btn btn-glass add-photo-btn">
+                      📷 Foto hinzufügen
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1281,35 +1266,18 @@ app.get('/protocols/new', (c) => {
                   ></textarea>
                 </div>
 
-                {/* Foto-Upload Bereich für Substrat-Phase */}
+                {/* Flexibles Foto-Upload für Substrat-Phase */}
                 <div className="form-group form-group--full">
                   <label className="form-label">
                     📸 Fotos - Substrat Wachstumsphase
                   </label>
-                  <div className="photo-upload-area">
-                    <div className="photo-timeline">
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Substrat-<br/>Vorbereitung</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Nach<br/>Sterilisation</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Im<br/>Container</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
+                  <div className="flexible-photo-upload" data-phase="substrate">
+                    <div className="photo-upload-grid" id="substrate-photos">
+                      {/* Dynamically added photo slots will go here */}
                     </div>
+                    <button type="button" onclick="addPhotoSlot('substrate', 'Substrat-Phase')" className="btn btn-glass add-photo-btn">
+                      📷 Foto hinzufügen
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1465,42 +1433,18 @@ app.get('/protocols/new', (c) => {
                   ></textarea>
                 </div>
 
-                {/* Foto-Upload Bereich für Fruchtungs-Phase */}
+                {/* Flexibles Foto-Upload für Fruchtungs-Phase */}
                 <div className="form-group form-group--full">
                   <label className="form-label">
                     📸 Fotos - Fruchtungsphase
                   </label>
-                  <div className="photo-upload-area">
-                    <div className="photo-timeline">
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Erste<br/>Pins</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Junge<br/>Pilze</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Vor<br/>Ernte</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
-                      <div className="photo-slot">
-                        <div className="photo-placeholder">
-                          <span>📷</span>
-                          <p>Nach<br/>Ernte</p>
-                        </div>
-                        <input type="file" accept="image/*" className="photo-input" />
-                      </div>
+                  <div className="flexible-photo-upload" data-phase="fruiting">
+                    <div className="photo-upload-grid" id="fruiting-photos">
+                      {/* Dynamically added photo slots will go here */}
                     </div>
+                    <button type="button" onclick="addPhotoSlot('fruiting', 'Fruchtungs-Phase')" className="btn btn-glass add-photo-btn">
+                      📷 Foto hinzufügen
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1603,23 +1547,13 @@ app.get('/protocols/new', (c) => {
                         <label className="form-label">
                           📸 Fotos - Ernte
                         </label>
-                        <div className="photo-upload-area">
-                          <div className="photo-timeline harvest-photos">
-                            <div className="photo-slot">
-                              <div className="photo-placeholder">
-                                <span>📷</span>
-                                <p>Geerntete<br/>Pilze</p>
-                              </div>
-                              <input type="file" accept="image/*" className="photo-input" name="harvests[0][photos][]" />
-                            </div>
-                            <div className="photo-slot">
-                              <div className="photo-placeholder">
-                                <span>📷</span>
-                                <p>Nach<br/>Ernte</p>
-                              </div>
-                              <input type="file" accept="image/*" className="photo-input" name="harvests[0][photos][]" />
-                            </div>
+                        <div className="flexible-photo-upload" data-phase="harvest">
+                          <div className="photo-upload-grid" id="harvest-1-photos">
+                            {/* Dynamically added photo slots will go here */}
                           </div>
+                          <button type="button" onclick="addPhotoSlot('harvest-1', 'Erste Ernte')" className="btn btn-glass add-photo-btn">
+                            📷 Foto hinzufügen
+                          </button>
                         </div>
                       </div>
                     </div>

@@ -794,11 +794,263 @@
         }
     };
     
-    // Dropdown Management
-    window.manageDropdown = function(category) {
-        alert(`Dropdown-Verwaltung für "${category}" wird in einem zukünftigen Update verfügbar sein!`);
-        // TODO: Implement dropdown management modal
+    // =========================
+    // FLEXIBLES FOTO-UPLOAD SYSTEM
+    // =========================
+    
+    let photoCounters = {}; // Track photo counters per phase
+    
+    // Add photo slot to any phase
+    window.addPhotoSlot = function(phaseId, phaseName) {
+        if (!photoCounters[phaseId]) {
+            photoCounters[phaseId] = 0;
+        }
+        
+        photoCounters[phaseId]++;
+        const photoId = `${phaseId}-photo-${photoCounters[phaseId]}`;
+        
+        const container = document.getElementById(`${phaseId}-photos`);
+        if (!container) {
+            console.error(`Container nicht gefunden: ${phaseId}-photos`);
+            return;
+        }
+        
+        const photoSlot = document.createElement('div');
+        photoSlot.className = 'photo-slot';
+        photoSlot.id = photoId;
+        
+        photoSlot.innerHTML = `
+            <div class="photo-display">
+                <div class="photo-placeholder" onclick="document.getElementById('${photoId}-input').click()">
+                    <span>📷</span>
+                    <p>Foto ${photoCounters[phaseId]}<br/>${phaseName}</p>
+                </div>
+                <img class="photo-preview" id="${photoId}-preview" style="display: none;" />
+            </div>
+            <input 
+                type="file" 
+                accept="image/*" 
+                class="photo-input" 
+                id="${photoId}-input"
+                name="${phaseId}_photos[]"
+                onchange="handlePhotoPreview('${photoId}')"
+                style="display: none;"
+            />
+            <div class="photo-controls">
+                <button type="button" onclick="removePhotoSlot('${photoId}')" class="remove-photo-btn" title="Foto entfernen">
+                    ✕
+                </button>
+                <input 
+                    type="text" 
+                    placeholder="Beschreibung..." 
+                    class="photo-description" 
+                    name="${phaseId}_descriptions[]"
+                    maxlength="100"
+                />
+            </div>
+        `;
+        
+        container.appendChild(photoSlot);
+        
+        // Animate in
+        photoSlot.style.opacity = '0';
+        photoSlot.style.transform = 'scale(0.8)';
+        setTimeout(() => {
+            photoSlot.style.transition = 'all 0.3s ease';
+            photoSlot.style.opacity = '1';
+            photoSlot.style.transform = 'scale(1)';
+        }, 10);
     };
+    
+    // Remove photo slot
+    window.removePhotoSlot = function(photoId) {
+        const photoSlot = document.getElementById(photoId);
+        if (photoSlot) {
+            photoSlot.style.transition = 'all 0.3s ease';
+            photoSlot.style.opacity = '0';
+            photoSlot.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                photoSlot.remove();
+            }, 300);
+        }
+    };
+    
+    // Handle photo preview
+    window.handlePhotoPreview = function(photoId) {
+        const input = document.getElementById(`${photoId}-input`);
+        const preview = document.getElementById(`${photoId}-preview`);
+        const placeholder = document.querySelector(`#${photoId} .photo-placeholder`);
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                placeholder.style.display = 'none';
+            };
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
+    
+    // =========================
+    // DROPDOWN MANAGEMENT SYSTEM
+    // =========================
+    
+    // Dropdown Management with Modal
+    window.manageDropdown = function(category) {
+        showDropdownModal(category);
+    };
+    
+    function showDropdownModal(category) {
+        const modal = document.createElement('div');
+        modal.id = 'dropdown-modal';
+        modal.className = 'modal-overlay';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Dropdown verwalten: ${getCategoryDisplayName(category)}</h3>
+                    <button onclick="closeDropdownModal()" class="modal-close">✕</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="add-option-form">
+                        <h4>Neue Option hinzufügen:</h4>
+                        <div class="form-row">
+                            <input 
+                                type="text" 
+                                id="new-option-label" 
+                                placeholder="Anzeigename (z.B. Shiitake)"
+                                class="form-input"
+                            />
+                            <input 
+                                type="text" 
+                                id="new-option-value" 
+                                placeholder="Wert (z.B. shiitake)"
+                                class="form-input"
+                            />
+                            <button onclick="addDropdownOption('${category}')" class="btn btn-primary">
+                                + Hinzufügen
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="existing-options">
+                        <h4>Bestehende Optionen:</h4>
+                        <div id="options-list" class="options-list">
+                            <div class="loading">Lade Optionen...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        loadDropdownOptions(category);
+        
+        // Close on backdrop click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeDropdownModal();
+            }
+        });
+    }
+    
+    window.closeDropdownModal = function() {
+        const modal = document.getElementById('dropdown-modal');
+        if (modal) {
+            modal.remove();
+        }
+    };
+    
+    window.addDropdownOption = async function(category) {
+        const label = document.getElementById('new-option-label').value.trim();
+        const value = document.getElementById('new-option-value').value.trim();
+        
+        if (!label || !value) {
+            alert('Bitte füllen Sie beide Felder aus!');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/dropdown/${category}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label, value })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('new-option-label').value = '';
+                document.getElementById('new-option-value').value = '';
+                loadDropdownOptions(category); // Reload options
+                showNotification('✅ Option erfolgreich hinzugefügt!', 'success');
+            } else {
+                showNotification('❌ Fehler beim Hinzufügen der Option', 'error');
+            }
+        } catch (error) {
+            showNotification('❌ Netzwerk-Fehler', 'error');
+        }
+    };
+    
+    async function loadDropdownOptions(category) {
+        try {
+            const response = await fetch(`/api/dropdown/${category}`);
+            const result = await response.json();
+            
+            const container = document.getElementById('options-list');
+            
+            if (result.success && result.options.length > 0) {
+                container.innerHTML = result.options.map(option => `
+                    <div class="option-item" data-id="${option.id}">
+                        <span class="option-label">${option.label}</span>
+                        <span class="option-value">(${option.value})</span>
+                        <button onclick="deleteDropdownOption('${category}', ${option.id})" class="delete-option">✕</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="no-options">Keine Optionen verfügbar</div>';
+            }
+        } catch (error) {
+            document.getElementById('options-list').innerHTML = '<div class="error">Fehler beim Laden der Optionen</div>';
+        }
+    }
+    
+    window.deleteDropdownOption = async function(category, optionId) {
+        if (!confirm('Diese Option wirklich löschen?')) return;
+        
+        try {
+            const response = await fetch(`/api/dropdown/${category}/${optionId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                loadDropdownOptions(category); // Reload options
+                showNotification('✅ Option gelöscht!', 'success');
+            } else {
+                showNotification('❌ Fehler beim Löschen', 'error');
+            }
+        } catch (error) {
+            showNotification('❌ Netzwerk-Fehler', 'error');
+        }
+    };
+    
+    function getCategoryDisplayName(category) {
+        const names = {
+            'species': 'Pilzarten',
+            'substrate_types': 'Substrat-Typen',
+            'inoculation_methods': 'Inokulations-Methoden',
+            'sterilization_methods': 'Sterilisations-Methoden',
+            'container_types': 'Container-Typen',
+            'fruiting_triggers': 'Fruchtungs-Auslöser'
+        };
+        return names[category] || category;
+    }
     
     // Protocol Save Functions  
     window.saveProtocol = async function() {
@@ -827,11 +1079,24 @@
         const formData = new FormData(form);
         const protocolData = {};
         
-        // Basic fields
+        // Basic fields with proper mapping
         for (const [key, value] of formData.entries()) {
             if (!key.startsWith('harvests[')) {
                 protocolData[key] = value;
             }
+        }
+        
+        // Ensure species_id is set correctly
+        if (protocolData.species_id && !protocolData.species_id.trim()) {
+            delete protocolData.species_id;
+        }
+        
+        // Convert string numbers to integers where needed
+        if (protocolData.species_id) {
+            protocolData.species_id = parseInt(protocolData.species_id);
+        }
+        if (protocolData.genetic_age) {
+            protocolData.genetic_age = parseInt(protocolData.genetic_age);
         }
         
         // Collect harvest data
