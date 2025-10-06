@@ -1,6 +1,5 @@
-DEPLOYMENT_TRIGGER=responsive-design-fix
-TIMESTAMP=$(date)
-COMMIT_HASH=$(git rev-parse HEAD)
-
-This file triggers Cloudflare Pages deployment
-Latest responsive design changes should be included
+FORCE CLOUDFLARE PAGES BUILD - 2025-10-06 11:00 UTC
+UI Fix deployment attempt #3
+Expected: Protocol labels with proper formatting (Art: Species)
+Build trigger: df2e2c3
+Target: mushroom-manager.pages.dev
