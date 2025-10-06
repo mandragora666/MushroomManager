@@ -1324,3 +1324,41 @@ textarea.form-input {
     box-shadow: none !important;
   }
 }
+/* Draft-specific styling */
+.protocol-draft {
+    border: 2px dashed var(--accent-color) !important;
+    opacity: 0.9;
+    background: rgba(243, 156, 18, 0.1);
+}
+
+.status-draft {
+    background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+    color: white !important;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: 1px solid #c0392b;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-1px);
+}
+
+/* Loading states */
+.loading-spinner {
+    color: var(--accent-color);
+    font-size: 1.1rem;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}

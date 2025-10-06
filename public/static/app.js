@@ -124,12 +124,10 @@
 
         // Protocol form functions
         window.saveProtocol = function() {
-            handleProtocolSubmit(false);
+            handleProtocolSubmit(false); // Full protocol save
         };
-
-        window.saveDraft = function() {
-            handleProtocolSubmit(true);
-        };
+        
+        // saveDraft function is defined separately below
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
@@ -489,9 +487,94 @@
     }
 
     // Form helpers
+    // Load draft data into form
+    function loadDraftIntoForm(draft) {
+        if (!draft.data) return;
+        
+        const data = draft.data;
+        
+        // Fill form fields
+        Object.keys(data).forEach(key => {
+            const element = document.getElementById(key) || document.querySelector(`[name="${key}"]`);
+            if (element && data[key]) {
+                element.value = data[key];
+            }
+        });
+        
+        // Show draft indicator
+        const draftInfo = document.createElement('div');
+        draftInfo.id = 'draft-loaded-info';
+        draftInfo.className = 'draft-indicator';
+        draftInfo.innerHTML = `
+            <div style="background: var(--glass-bg); border: 1px solid var(--accent-color); border-radius: var(--border-radius); padding: 1rem; margin: 1rem 0; color: var(--accent-color);">
+                📝 Entwurf "${draft.code}" geladen - Bearbeitung fortsetzen
+            </div>
+        `;
+        
+        const form = document.getElementById('protocolForm');
+        if (form) {
+            form.parentNode.insertBefore(draftInfo, form);
+        }
+        
+        // Reset form change detection since we just loaded data
+        window.formChanged = false;
+    }
+
+    // Load dynamic dropdown options from API
+    async function loadFormDropdowns() {
+        const dropdowns = {
+            'inoculation_method': '#inoculation_method',
+            'substrate_type': '#substrate_type',
+            'container_type': '#container_type'
+        };
+        
+        for (const [category, selector] of Object.entries(dropdowns)) {
+            const dropdown = document.querySelector(selector);
+            if (dropdown) {
+                try {
+                    const response = await fetch(`/api/dropdown/${category}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.options) {
+                        // Keep the default "Select..." option
+                        const defaultOption = dropdown.querySelector('option[value=""]');
+                        dropdown.innerHTML = '';
+                        if (defaultOption) {
+                            dropdown.appendChild(defaultOption);
+                        }
+                        
+                        // Add options from API
+                        result.options.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option.value;
+                            opt.textContent = option.label;
+                            dropdown.appendChild(opt);
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Failed to load ${category} options:`, error);
+                }
+            }
+        }
+    }
+
     function initProtocolForm() {
         const form = document.getElementById('protocolForm');
         if (!form) return;
+
+        // Check if we need to load a draft
+        const draftToLoad = localStorage.getItem('load_draft');
+        if (draftToLoad) {
+            try {
+                const draft = JSON.parse(draftToLoad);
+                localStorage.removeItem('load_draft'); // Clean up
+                loadDraftIntoForm(draft);
+                showNotification('📝 Entwurf geladen!', 'success');
+            } catch (error) {
+                console.error('Fehler beim Laden des Entwurfs:', error);
+                localStorage.removeItem('load_draft'); // Clean up broken data
+            }
+        }
 
         // Set default values
         const startDateInput = document.getElementById('startDate');
@@ -499,18 +582,21 @@
             startDateInput.value = new Date().toISOString().split('T')[0];
         }
 
+        // Load dynamic dropdown options
+        loadFormDropdowns();
+        
         // Auto-completion and suggestions
         addFormEnhancements();
 
-        // Form change detection
-        let formChanged = false;
+        // Form change detection (global for draft saving)
+        window.formChanged = false;
         form.addEventListener('input', () => {
-            formChanged = true;
+            window.formChanged = true;
         });
 
         // Warn before leaving unsaved form
         window.addEventListener('beforeunload', (e) => {
-            if (formChanged) {
+            if (window.formChanged) {
                 e.preventDefault();
                 e.returnValue = 'Du hast ungespeicherte Änderungen. Möchtest du wirklich die Seite verlassen?';
             }
@@ -518,7 +604,7 @@
 
         // Save draft periodically
         setInterval(() => {
-            if (formChanged) {
+            if (window.formChanged) {
                 saveDraftSilently();
             }
         }, 2 * 60 * 1000); // Every 2 minutes
@@ -594,6 +680,142 @@
     // Initialize form when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         initProtocolForm();
+    });
+
+    // ============================
+    // PROTOCOLS PAGE FUNCTIONALITY  
+    // ============================
+    
+    // Load protocols dynamically for /protocols page
+    async function loadProtocolsList() {
+        const container = document.getElementById('protocols-container');
+        const loading = document.getElementById('protocols-loading');
+        const empty = document.getElementById('protocols-empty');
+        
+        if (!container) return; // Not on protocols page
+        
+        try {
+            loading.style.display = 'block';
+            container.style.display = 'none';
+            empty.style.display = 'none';
+            
+            const response = await fetch('/api/protocols');
+            const result = await response.json();
+            
+            if (result.success && result.protocols.length > 0) {
+                container.innerHTML = result.protocols.map(protocol => {
+                    const isDraft = protocol.isDraft || false;
+                    const statusClass = isDraft ? 'status-draft' : 
+                        protocol.status === 'active' ? 'status-fruchtung' :
+                        protocol.status === 'preparation' ? 'status-durchwachsung' :
+                        'status-other';
+                    
+                    const displayStatus = isDraft ? '📝 Entwurf' : 
+                        protocol.status === 'active' ? 'Aktiv' :
+                        protocol.status === 'preparation' ? 'Vorbereitung' :
+                        protocol.status || 'Unbekannt';
+                    
+                    return `
+                        <div class="protocol-card ${isDraft ? 'protocol-draft' : ''}">
+                            <div class="protocol-header">
+                                <h3 class="protocol-title">${protocol.title}</h3>
+                                <span class="protocol-status ${statusClass}">
+                                    ${displayStatus}
+                                </span>
+                            </div>
+                            
+                            <div class="protocol-meta">
+                                <div class="protocol-meta-item">
+                                    <span class="protocol-meta-label">Code</span>
+                                    <span class="protocol-meta-value">${protocol.code || 'N/A'}</span>
+                                </div>
+                                <div class="protocol-meta-item">
+                                    <span class="protocol-meta-label">Art</span>
+                                    <span class="protocol-meta-value">${protocol.species_name || protocol.species || 'N/A'}</span>
+                                </div>
+                                <div class="protocol-meta-item">
+                                    <span class="protocol-meta-label">Erstellt</span>
+                                    <span class="protocol-meta-value">${new Date(protocol.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div class="protocol-meta-item">
+                                    <span class="protocol-meta-label">Aktualisiert</span>
+                                    <span class="protocol-meta-value">${new Date(protocol.updated_at || protocol.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="protocol-actions">
+                                <button 
+                                    onclick="${isDraft ? `loadDraft(${protocol.id})` : `viewProtocol(${protocol.id})`}"
+                                    class="btn btn-primary flex-1"
+                                >
+                                    ${isDraft ? '✏️ Weiter bearbeiten' : '👁️ Details'}
+                                </button>
+                                <button 
+                                    onclick="${isDraft ? `deleteDraft(${protocol.id})` : `editProtocol(${protocol.id})`}"
+                                    class="btn ${isDraft ? 'btn-danger' : 'btn-glass'}"
+                                >
+                                    ${isDraft ? '🗑️ Löschen' : '✏️ Bearbeiten'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                loading.style.display = 'none';
+                container.style.display = 'grid';
+            } else {
+                loading.style.display = 'none';
+                empty.style.display = 'block';
+            }
+            
+        } catch (error) {
+            console.error('Fehler beim Laden der Protokolle:', error);
+            loading.innerHTML = '❌ Fehler beim Laden der Protokolle';
+        }
+    }
+    
+    // Draft management functions
+    window.loadDraft = async function(draftId) {
+        try {
+            const response = await fetch(`/api/drafts/${draftId}`);
+            const result = await response.json();
+            
+            if (result.success && result.draft) {
+                // Store draft data in localStorage for loading in form
+                localStorage.setItem('load_draft', JSON.stringify(result.draft));
+                window.location.href = '/protocols/new';
+            } else {
+                showNotification('❌ Entwurf konnte nicht geladen werden', 'error');
+            }
+        } catch (error) {
+            showNotification('❌ Fehler beim Laden des Entwurfs', 'error');
+        }
+    };
+    
+    window.deleteDraft = async function(draftId) {
+        if (!confirm('Entwurf wirklich löschen?')) return;
+        
+        try {
+            const response = await fetch(`/api/drafts/${draftId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('✅ Entwurf gelöscht!', 'success');
+                loadProtocolsList(); // Reload list
+            } else {
+                showNotification('❌ Fehler beim Löschen', 'error');
+            }
+        } catch (error) {
+            showNotification('❌ Netzwerk-Fehler', 'error');
+        }
+    };
+    
+    // Load protocols on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProtocolsList();
     });
 
     // Console welcome message
@@ -986,15 +1208,102 @@
             if (result.success) {
                 document.getElementById('new-option-label').value = '';
                 document.getElementById('new-option-value').value = '';
-                loadDropdownOptions(category); // Reload options
+                
+                // Reload options in modal
+                loadDropdownOptions(category);
+                
+                // ✨ NEU: Update das entsprechende Dropdown im Hauptformular
+                updateMainFormDropdown(category, result.option);
+                
                 showNotification('✅ Option erfolgreich hinzugefügt!', 'success');
             } else {
-                showNotification('❌ Fehler beim Hinzufügen der Option', 'error');
+                showNotification(`❌ Fehler: ${result.error}`, 'error');
             }
         } catch (error) {
             showNotification('❌ Netzwerk-Fehler', 'error');
         }
     };
+    
+    // ✨ Neue Funktion: Update Dropdown im Hauptformular
+    function updateMainFormDropdown(category, newOption) {
+        const dropdownSelectors = {
+            'species': '#species_select',
+            'substrate_type': '#substrate_type', 
+            'inoculation_method': '#inoculation_method',
+            'sterilization_method': '#sterilization_method',
+            'container_type': '#container_type',
+            'fruiting_trigger': '#fruiting_trigger'
+        };
+        
+        const selector = dropdownSelectors[category];
+        if (selector) {
+            const dropdown = document.querySelector(selector);
+            if (dropdown) {
+                // Füge neue Option hinzu
+                const option = document.createElement('option');
+                option.value = newOption.value; // Use value, not ID
+                option.textContent = newOption.label;
+                dropdown.appendChild(option);
+                
+                // Optional: Wähle die neue Option automatisch aus
+                dropdown.value = newOption.value;
+                
+                console.log(`Dropdown ${category} erfolgreich aktualisiert`);
+            }
+        }
+    }
+    
+    // ✨ Refresh complete dropdown from API
+    async function refreshMainFormDropdown(category) {
+        const dropdownSelectors = {
+            'species': '#species_select',
+            'substrate_type': '#substrate_type', 
+            'inoculation_method': '#inoculation_method',
+            'sterilization_method': '#sterilization_method',
+            'container_type': '#container_type',
+            'fruiting_trigger': '#fruiting_trigger'
+        };
+        
+        const selector = dropdownSelectors[category];
+        if (selector) {
+            const dropdown = document.querySelector(selector);
+            if (dropdown) {
+                try {
+                    const response = await fetch(`/api/dropdown/${category}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Keep current selection
+                        const currentValue = dropdown.value;
+                        
+                        // Keep default option
+                        const defaultOption = dropdown.querySelector('option[value=""]');
+                        dropdown.innerHTML = '';
+                        if (defaultOption) {
+                            dropdown.appendChild(defaultOption);
+                        }
+                        
+                        // Add all options from API
+                        result.options.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option.value;
+                            opt.textContent = option.label;
+                            dropdown.appendChild(opt);
+                        });
+                        
+                        // Restore selection if still exists
+                        if ([...dropdown.options].some(opt => opt.value === currentValue)) {
+                            dropdown.value = currentValue;
+                        }
+                        
+                        console.log(`Main dropdown ${category} refreshed`);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to refresh ${category} dropdown:`, error);
+                }
+            }
+        }
+    }
     
     async function loadDropdownOptions(category) {
         try {
@@ -1030,7 +1339,8 @@
             const result = await response.json();
             
             if (result.success) {
-                loadDropdownOptions(category); // Reload options
+                loadDropdownOptions(category); // Reload modal
+                refreshMainFormDropdown(category); // Reload main form dropdown
                 showNotification('✅ Option gelöscht!', 'success');
             } else {
                 showNotification('❌ Fehler beim Löschen', 'error');
@@ -1148,8 +1458,12 @@
     };
     
     window.saveDraft = async function() {
+        console.log('🔥 saveDraft called');
         const form = document.getElementById('protocolForm');
-        if (!form) return;
+        if (!form) {
+            console.error('❌ Form not found');
+            return;
+        }
         
         try {
             // Collect form data for draft
@@ -1161,6 +1475,8 @@
                     draftData[key] = value;
                 }
             }
+            
+            console.log('📤 Sending draft data:', draftData);
             
             // Also save to localStorage as backup
             localStorage.setItem('protocol_draft', JSON.stringify({
@@ -1178,19 +1494,51 @@
                 body: JSON.stringify(draftData)
             });
             
+            console.log('📥 Response status:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const result = await response.json();
+            console.log('📥 Response data:', result);
+            
             hideLoading();
             
             if (result.success) {
                 showNotification('💾 Entwurf gespeichert!', 'success');
+                
+                // Reset form change detection - draft is saved
+                window.formChanged = false;
+                
+                // Add draft info to page
+                if (result.draft && result.draft.code) {
+                    const draftInfo = document.createElement('div');
+                    draftInfo.id = 'draft-info';
+                    draftInfo.className = 'draft-indicator';
+                    draftInfo.innerHTML = `
+                        <div style="background: var(--glass-bg); border: 1px solid var(--accent-color); border-radius: var(--border-radius); padding: 1rem; margin: 1rem 0; color: var(--accent-color);">
+                            📝 Entwurf "${result.draft.code}" gespeichert - Sie können das Formular sicher verlassen
+                        </div>
+                    `;
+                    
+                    const form = document.getElementById('protocolForm');
+                    if (form) {
+                        // Remove existing draft info
+                        const existing = document.getElementById('draft-info');
+                        if (existing) existing.remove();
+                        
+                        form.parentNode.insertBefore(draftInfo, form);
+                    }
+                }
             } else {
-                showNotification('❌ Fehler beim Speichern des Entwurfs', 'error');
+                showNotification(`❌ Fehler: ${result.error || 'Unbekannt'}`, 'error');
             }
             
         } catch (error) {
             hideLoading();
-            showNotification('💾 Entwurf lokal gespeichert!', 'info');
-            console.error('Draft save error:', error);
+            console.error('🔥 Draft save error:', error);
+            showNotification('💾 Entwurf lokal gespeichert! (Server-Fehler)', 'info');
         }
     };
     

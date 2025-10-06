@@ -71,10 +71,33 @@ app.get('/api/protocols', async (c) => {
     const db = new DatabaseService(c.env.DB);
     const protocols = await db.getAllProtocols();
     
+    // Also get drafts
+    const draftsResult = await c.env.DB.prepare(`
+      SELECT id, code, title, created_at, updated_at,
+             'draft' as status, 'Entwurf' as species_name
+      FROM protocol_drafts 
+      WHERE is_active = 1
+      ORDER BY updated_at DESC
+    `).all();
+    
+    const drafts = draftsResult.results.map(draft => ({
+      ...draft,
+      isDraft: true,
+      scientific_name: '',
+      created_at: draft.created_at,
+      updated_at: draft.updated_at
+    }));
+    
+    // Combine protocols and drafts
+    const allItems = [...protocols, ...drafts].sort((a, b) => 
+      new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+    );
+    
     return c.json({
       success: true,
-      protocols,
-      count: protocols.length,
+      protocols: allItems,
+      count: allItems.length,
+      drafts_count: drafts.length,
       source: 'database'
     });
   } catch (error) {
@@ -390,10 +413,17 @@ app.post('/api/dropdown/:category', async (c) => {
       is_active: true
     });
     
+    const newOption = {
+      id: optionId,
+      value: data.value.trim(),
+      label: data.label.trim()
+    };
+    
     return c.json({
       success: true,
       id: optionId,
-      message: 'Option erfolgreich hinzugefügt'
+      message: 'Option erfolgreich hinzugefügt',
+      option: newOption
     }, 201);
   } catch (error) {
     console.error('Create dropdown option error:', error);
@@ -449,19 +479,66 @@ app.post('/api/protocols/draft', async (c) => {
   try {
     const data = await c.req.json();
     
-    // Store draft in mock storage (in real app would be localStorage or DB)
-    const draft = {
-      id: 'draft_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      data: data
-    };
+    if (!c.env?.DB) {
+      // Fallback: Store draft in mock storage
+      const draft = {
+        id: 'draft_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        data: data
+      };
+      
+      return c.json({
+        success: true,
+        draft,
+        message: 'Entwurf lokal gespeichert! (Mock-Modus)',
+        source: 'mock'
+      }, 201);
+    }
+
+    // Real D1 database storage
+    const db = c.env.DB;
     
-    // In development mode, just return success
+    // Generate or use existing code
+    const code = data.code || `DRAFT_${Date.now()}`;
+    const title = data.title || 'Unbenannter Entwurf';
+    
+    // Check if draft with this code already exists
+    const existingDraft = await db.prepare(`
+      SELECT id FROM protocol_drafts 
+      WHERE code = ? AND is_active = 1
+    `).bind(code).first();
+    
+    let draftId;
+    
+    if (existingDraft) {
+      // Update existing draft
+      await db.prepare(`
+        UPDATE protocol_drafts 
+        SET title = ?, draft_data = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(title, JSON.stringify(data), existingDraft.id).run();
+      
+      draftId = existingDraft.id;
+    } else {
+      // Create new draft
+      const result = await db.prepare(`
+        INSERT INTO protocol_drafts (code, title, draft_data, created_at, updated_at)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(code, title, JSON.stringify(data)).run();
+      
+      draftId = result.meta.last_row_id;
+    }
+    
     return c.json({
       success: true,
-      draft,
-      message: 'Entwurf gespeichert! (Mock-Modus - Daten werden nicht dauerhaft gespeichert)',
-      source: 'mock'
+      draft: {
+        id: draftId,
+        code,
+        title,
+        timestamp: new Date().toISOString()
+      },
+      message: '💾 Entwurf gespeichert!',
+      source: 'database'
     }, 201);
     
   } catch (error) {
@@ -469,6 +546,118 @@ app.post('/api/protocols/draft', async (c) => {
     return c.json({
       success: false,
       error: 'Fehler beim Speichern des Entwurfs'
+    }, 500);
+  }
+})
+
+// Get all drafts
+app.get('/api/drafts', async (c) => {
+  try {
+    if (!c.env?.DB) {
+      return c.json({
+        success: true,
+        drafts: [],
+        message: 'Keine Entwürfe im Mock-Modus',
+        source: 'mock'
+      });
+    }
+
+    const db = c.env.DB;
+    const result = await db.prepare(`
+      SELECT id, code, title, created_at, updated_at
+      FROM protocol_drafts 
+      WHERE is_active = 1
+      ORDER BY updated_at DESC
+    `).all();
+    
+    return c.json({
+      success: true,
+      drafts: result.results,
+      source: 'database'
+    });
+    
+  } catch (error) {
+    console.error('Get drafts error:', error);
+    return c.json({
+      success: false,
+      error: 'Fehler beim Laden der Entwürfe'
+    }, 500);
+  }
+})
+
+// Get specific draft
+app.get('/api/drafts/:id', async (c) => {
+  try {
+    const draftId = parseInt(c.req.param('id'));
+    
+    if (!c.env?.DB) {
+      return c.json({
+        success: false,
+        error: 'Entwurf nicht verfügbar im Mock-Modus'
+      }, 404);
+    }
+
+    const db = c.env.DB;
+    const draft = await db.prepare(`
+      SELECT id, code, title, draft_data, created_at, updated_at
+      FROM protocol_drafts 
+      WHERE id = ? AND is_active = 1
+    `).bind(draftId).first();
+    
+    if (!draft) {
+      return c.json({
+        success: false,
+        error: 'Entwurf nicht gefunden'
+      }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      draft: {
+        ...draft,
+        data: JSON.parse(draft.draft_data)
+      },
+      source: 'database'
+    });
+    
+  } catch (error) {
+    console.error('Get draft error:', error);
+    return c.json({
+      success: false,
+      error: 'Fehler beim Laden des Entwurfs'
+    }, 500);
+  }
+})
+
+// Delete draft
+app.delete('/api/drafts/:id', async (c) => {
+  try {
+    const draftId = parseInt(c.req.param('id'));
+    
+    if (!c.env?.DB) {
+      return c.json({
+        success: false,
+        error: 'Löschen nicht verfügbar im Mock-Modus'
+      }, 400);
+    }
+
+    const db = c.env.DB;
+    await db.prepare(`
+      UPDATE protocol_drafts 
+      SET is_active = 0 
+      WHERE id = ?
+    `).bind(draftId).run();
+    
+    return c.json({
+      success: true,
+      message: 'Entwurf gelöscht'
+    });
+    
+  } catch (error) {
+    console.error('Delete draft error:', error);
+    return c.json({
+      success: false,
+      error: 'Fehler beim Löschen des Entwurfs'
     }, 500);
   }
 })
@@ -772,55 +961,25 @@ app.get('/protocols', (c) => {
       {/* Main Content */}
       <main className="site-container">
         <div className="pb-6">
-          <div className="protocol-grid">
-            {mockProtocols.map(protocol => (
-              <div key={protocol.id} className="protocol-card">
-                <div className="protocol-header">
-                  <h3 className="protocol-title">{protocol.title}</h3>
-                  <span className={`protocol-status ${
-                    protocol.status === 'Fruchtung' ? 'status-fruchtung' :
-                    protocol.status === 'Durchwachsung' ? 'status-durchwachsung' :
-                    'status-other'
-                  }`}>
-                    {protocol.status}
-                  </span>
-                </div>
-                
-                <div className="protocol-meta">
-                  <div className="protocol-meta-item">
-                    <span className="protocol-meta-label">Art</span>
-                    <span className="protocol-meta-value">{protocol.species}</span>
-                  </div>
-                  <div className="protocol-meta-item">
-                    <span className="protocol-meta-label">Substrat</span>
-                    <span className="protocol-meta-value">{protocol.substrate}</span>
-                  </div>
-                  <div className="protocol-meta-item">
-                    <span className="protocol-meta-label">Start</span>
-                    <span className="protocol-meta-value">{protocol.startDate}</span>
-                  </div>
-                  <div className="protocol-meta-item">
-                    <span className="protocol-meta-label">Phase</span>
-                    <span className="protocol-meta-value">{protocol.phase}</span>
-                  </div>
-                </div>
-                
-                <div className="protocol-actions">
-                  <button 
-                    onclick={`viewProtocol(${protocol.id})`}
-                    className="btn btn-primary flex-1"
-                  >
-                    Details
-                  </button>
-                  <button 
-                    onclick={`editProtocol(${protocol.id})`}
-                    className="btn btn-glass"
-                  >
-                    Bearbeiten
-                  </button>
-                </div>
-              </div>
-            ))}
+          {/* Loading State */}
+          <div id="protocols-loading" className="text-center py-8">
+            <div className="loading-spinner">⏳ Protokolle werden geladen...</div>
+          </div>
+          
+          {/* Protocols Container - populated by JavaScript */}
+          <div id="protocols-container" className="protocol-grid" style="display: none;">
+            {/* JavaScript will populate this */}
+          </div>
+          
+          {/* Empty State */}
+          <div id="protocols-empty" className="text-center py-8" style="display: none;">
+            <div className="empty-state">
+              <h3>Keine Protokolle gefunden</h3>
+              <p>Erstellen Sie Ihr erstes Zuchtprotokoll!</p>
+              <a href="/protocols/new" className="btn btn-primary mt-4">
+                + Erstes Protokoll erstellen
+              </a>
+            </div>
           </div>
         </div>
       </main>
@@ -1087,13 +1246,8 @@ app.get('/protocols/new', (c) => {
                   <div className="dropdown-with-manage">
                     <select id="inoculation_method" name="inoculation_method" className="form-input" required>
                       <option value="">Methode auswählen...</option>
-                      <option value="liquid_culture">Flüssigkultur</option>
-                      <option value="grain_spawn">Kornbrut</option>
-                      <option value="agar">Agar-Kultur</option>
-                      <option value="plugs">Dübel/Holzstäbchen</option>
-                      <option value="spores">Sporenabdruck</option>
                     </select>
-                    <button type="button" onclick="manageDropdown('inoculation_methods')" className="manage-btn">
+                    <button type="button" onclick="manageDropdown('inoculation_method')" className="manage-btn">
                       ⚙️ Verwalten
                     </button>
                   </div>
