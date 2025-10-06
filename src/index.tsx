@@ -736,7 +736,7 @@ app.get('/protocols', (c) => {
   )
 })
 
-// Neues Protokoll erstellen
+// Neues Protokoll erstellen - Vollständige Formular-Struktur basierend auf Screenshots
 app.get('/protocols/new', (c) => {
   return c.render(
     <div className="app-layout">
@@ -805,153 +805,200 @@ app.get('/protocols/new', (c) => {
         <div className="max-w-4xl mx-auto pb-6">
           <form id="protocolForm" className="space-y-6">
             
-            {/* Grunddaten */}
+            {/* 1. SUBSTRATBLOCK-BEZEICHNUNG */}
             <div className="glass-card">
               <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
-                🍄 Grunddaten
+                🏷️ Substratblock-Bezeichnung
               </h2>
               
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="title" className="form-label required">
-                    Protokoll-Name
+                  <label htmlFor="protocol_code" className="form-label required">
+                    Protokoll-Code
                   </label>
                   <input
                     type="text"
-                    id="title"
-                    name="title"
+                    id="protocol_code"
+                    name="code"
                     className="form-input"
-                    placeholder="z.B. SH02 - Shiitake Winterzucht"
+                    placeholder="z.B. BP03, SH01, HE02"
                     required
                   />
                   <p className="form-help">
-                    Eindeutiger Name für dein Zuchtprotokoll
+                    Eindeutige Kurz-Bezeichnung für diesen Block
                   </p>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="species" className="form-label required">
-                    Pilzart
-                  </label>
-                  <select id="species" name="species" className="form-input" required>
-                    <option value="">Pilzart auswählen</option>
-                    <option value="Pleurotus ostreatus">Austernpilz (Pleurotus ostreatus)</option>
-                    <option value="Pleurotus ostreatus - Hybrid">Austernpilz - Hybrid (Black Pearl)</option>
-                    <option value="Lentinula edodes">Shiitake (Lentinula edodes)</option>
-                    <option value="Hericium erinaceus">Igelstachelbart (Hericium erinaceus)</option>
-                    <option value="Ganoderma lucidum">Glänzender Lackporling (Ganoderma lucidum)</option>
-                    <option value="Agaricus bisporus">Champignon (Agaricus bisporus)</option>
-                    <option value="Trametes versicolor">Schmetterlingstramete (Trametes versicolor)</option>
-                    <option value="Andere">Andere (bitte im Substrat-Feld angeben)</option>
-                  </select>
-                  <p className="form-help">
-                    Die Art des Pilzes, den du züchten möchtest
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="startDate" className="form-label required">
-                    Startdatum
+                  <label htmlFor="protocol_title" className="form-label required">
+                    Titel/Bezeichnung
                   </label>
                   <input
-                    type="date"
-                    id="startDate"
-                    name="startDate"
+                    type="text"
+                    id="protocol_title"
+                    name="title"
                     className="form-input"
+                    placeholder="z.B. Black Pearl Austernpilz Winterzucht"
                     required
                   />
                   <p className="form-help">
-                    Datum der Inokulation/Beimpfung
+                    Vollständiger Name des Zuchtprojekts
                   </p>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="status" className="form-label required">
-                    Aktuelle Phase
+                  <label htmlFor="species_select" className="form-label required">
+                    Pilzart
                   </label>
-                  <select id="status" name="status" className="form-input" required>
-                    <option value="">Phase auswählen</option>
-                    <option value="Vorbereitung">Vorbereitung</option>
-                    <option value="Sterilisation">Sterilisation</option>
-                    <option value="Inokulation">Inokulation</option>
-                    <option value="Durchwachsung">Durchwachsung</option>
-                    <option value="Fruchtung">Fruchtung</option>
-                    <option value="Ernte">Ernte</option>
-                    <option value="Abgeschlossen">Abgeschlossen</option>
-                  </select>
+                  <div className="dropdown-with-manage">
+                    <select id="species_select" name="species_id" className="form-input" required>
+                      <option value="">Pilzart auswählen...</option>
+                      <option value="1">Pleurotus ostreatus (Austernpilz)</option>
+                      <option value="2">Lentinula edodes (Shiitake)</option>
+                      <option value="3">Hericium erinaceus (Igelstachelbart)</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('species')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
                   <p className="form-help">
-                    In welcher Phase befindet sich dein Projekt gerade?
+                    Wissenschaftliche Art und Sorte des Pilzes
                   </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="strain" className="form-label">
+                    Stamm/Variante
+                  </label>
+                  <input
+                    type="text"
+                    id="strain"
+                    name="strain"
+                    className="form-input"
+                    placeholder="z.B. Black Pearl, Blue Oyster, 3782"
+                  />
+                  <p className="form-help">
+                    Spezifische Stamm-Bezeichnung oder Sorte
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="origin" className="form-label">
+                    Herkunft/Quelle
+                  </label>
+                  <input
+                    type="text"
+                    id="origin"
+                    name="origin"
+                    className="form-input"
+                    placeholder="z.B. Hawlik, Pilzmännchen, Eigenkultur"
+                  />
+                  <p className="form-help">
+                    Woher stammt das Myzel/die Kultur?
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="breeder" className="form-label">
+                    Züchter/Lieferant
+                  </label>
+                  <input
+                    type="text"
+                    id="breeder"
+                    name="breeder"
+                    className="form-input"
+                    placeholder="z.B. Pilzshop XY, Private Züchtung"
+                  />
+                  <p className="form-help">
+                    Wer hat diesen Stamm gezüchtet/geliefert?
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="genetic_age" className="form-label">
+                    Genetisches Alter (Generationen)
+                  </label>
+                  <input
+                    type="number"
+                    id="genetic_age"
+                    name="genetic_age"
+                    className="form-input"
+                    placeholder="z.B. 3"
+                    min="0"
+                  />
+                  <p className="form-help">
+                    Anzahl der Übertragungen seit Wildstamm
+                  </p>
+                </div>
+
+                <div className="form-group form-group--full">
+                  <label htmlFor="notes_substrate" className="form-label">
+                    Zusätzliche Notizen
+                  </label>
+                  <textarea
+                    id="notes_substrate"
+                    name="notes"
+                    className="form-input"
+                    rows="2"
+                    placeholder="Besondere Eigenschaften, Erwartungen, Experimente..."
+                  ></textarea>
                 </div>
               </div>
             </div>
 
-            {/* Substrat & Inokulation */}
+            {/* 2. MYZEL WACHSTUMSPHASE */}
             <div className="glass-card">
               <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
-                🌾 Substrat & Inokulation
+                🧬 Myzel Wachstumsphase
               </h2>
               
               <div className="form-grid">
-                <div className="form-group form-group--full">
-                  <label htmlFor="substrate" className="form-label required">
-                    Substrat-Zusammensetzung
-                  </label>
-                  <textarea
-                    id="substrate"
-                    name="substrate"
-                    className="form-input"
-                    rows="3"
-                    placeholder="z.B. Masters Mix: 500g Sojabohnen + 500g Buchensägemehl + 20g Gips + 1L Wasser"
-                    required
-                  ></textarea>
-                  <p className="form-help">
-                    Detaillierte Beschreibung der Substrat-Mischung
-                  </p>
-                </div>
-
                 <div className="form-group">
-                  <label htmlFor="substrateWeight" className="form-label">
-                    Substratgewicht (g)
+                  <label htmlFor="mycel_start_date" className="form-label required">
+                    Startdatum Inokulation
                   </label>
                   <input
-                    type="number"
-                    id="substrateWeight"
-                    name="substrateWeight"
+                    type="date"
+                    id="mycel_start_date"
+                    name="mycel_start_date"
                     className="form-input"
-                    placeholder="1000"
-                    min="1"
+                    required
                   />
                   <p className="form-help">
-                    Gesamtgewicht des Substrats in Gramm
+                    Wann wurde das Substrat beimpft?
                   </p>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="inoculation" className="form-label required">
+                  <label htmlFor="inoculation_method" className="form-label required">
                     Inokulations-Methode
                   </label>
-                  <select id="inoculation" name="inoculation" className="form-input" required>
-                    <option value="">Methode auswählen</option>
-                    <option value="Flüssigkultur">Flüssigkultur</option>
-                    <option value="Kornbrut">Kornbrut</option>
-                    <option value="Agar-Kultur">Agar-Kultur</option>
-                    <option value="Dübel">Dübel/Holzstäbchen</option>
-                    <option value="Sporen">Sporenabdruck</option>
-                  </select>
+                  <div className="dropdown-with-manage">
+                    <select id="inoculation_method" name="inoculation_method" className="form-input" required>
+                      <option value="">Methode auswählen...</option>
+                      <option value="liquid_culture">Flüssigkultur</option>
+                      <option value="grain_spawn">Kornbrut</option>
+                      <option value="agar">Agar-Kultur</option>
+                      <option value="plugs">Dübel/Holzstäbchen</option>
+                      <option value="spores">Sporenabdruck</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('inoculation_methods')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
                   <p className="form-help">
-                    Wie wurde das Substrat beimpft?
+                    Wie wurde das Myzel eingebracht?
                   </p>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="inoculationAmount" className="form-label">
+                  <label htmlFor="inoculation_amount" className="form-label">
                     Inokulations-Menge
                   </label>
                   <input
                     type="text"
-                    id="inoculationAmount"
-                    name="inoculationAmount"
+                    id="inoculation_amount"
+                    name="inoculation_amount"
                     className="form-input"
                     placeholder="z.B. 10ml, 50g, 5 Dübel"
                   />
@@ -959,181 +1006,650 @@ app.get('/protocols/new', (c) => {
                     Menge des verwendeten Inokulums
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Umgebungsbedingungen */}
-            <div className="glass-card">
-              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
-                🌡️ Umgebungsbedingungen
-              </h2>
-              
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="temperature" className="form-label required">
-                    Temperatur
-                  </label>
-                  <input
-                    type="text"
-                    id="temperature"
-                    name="temperature"
-                    className="form-input"
-                    placeholder="z.B. 18-22°C"
-                    required
-                  />
-                  <p className="form-help">
-                    Temperaturbereich für diese Phase
-                  </p>
-                </div>
 
                 <div className="form-group">
-                  <label htmlFor="humidity" className="form-label required">
-                    Luftfeuchtigkeit
-                  </label>
-                  <input
-                    type="text"
-                    id="humidity"
-                    name="humidity"
-                    className="form-input"
-                    placeholder="z.B. 80-90%"
-                    required
-                  />
-                  <p className="form-help">
-                    Gewünschte Luftfeuchtigkeit
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="airflow" className="form-label">
-                    Belüftung
-                  </label>
-                  <select id="airflow" name="airflow" className="form-input">
-                    <option value="">Belüftung auswählen</option>
-                    <option value="Keine">Keine Belüftung</option>
-                    <option value="Passiv">Passive Belüftung</option>
-                    <option value="Aktiv-niedrig">Aktive Belüftung (niedrig)</option>
-                    <option value="Aktiv-hoch">Aktive Belüftung (hoch)</option>
-                  </select>
-                  <p className="form-help">
-                    Art und Stärke der Belüftung
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="lighting" className="form-label">
-                    Beleuchtung
-                  </label>
-                  <select id="lighting" name="lighting" className="form-input">
-                    <option value="">Beleuchtung auswählen</option>
-                    <option value="Dunkel">Dunkel</option>
-                    <option value="Indirektes Tageslicht">Indirektes Tageslicht</option>
-                    <option value="LED-Licht">LED-Licht</option>
-                    <option value="Neonröhre">Neonröhre</option>
-                  </select>
-                  <p className="form-help">
-                    Art der Beleuchtung
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Container & Setup */}
-            <div className="glass-card">
-              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
-                📦 Container & Setup
-              </h2>
-              
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="container" className="form-label">
-                    Container-Typ
-                  </label>
-                  <select id="container" name="container" className="form-input">
-                    <option value="">Container auswählen</option>
-                    <option value="Monotub">Monotub (große Plastikbox)</option>
-                    <option value="Shotgun Fruiting Chamber">Shotgun Fruiting Chamber</option>
-                    <option value="Grow Bag">Grow Bag (Zuchtbeutel)</option>
-                    <option value="Mason Jar">Mason Jar (Einmachglas)</option>
-                    <option value="Tupperware">Tupperware</option>
-                    <option value="Umluftbox">Umluftbox</option>
-                    <option value="Andere">Andere</option>
-                  </select>
-                  <p className="form-help">
-                    Welchen Container verwendest du?
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="containerSize" className="form-label">
-                    Container-Größe
-                  </label>
-                  <input
-                    type="text"
-                    id="containerSize"
-                    name="containerSize"
-                    className="form-input"
-                    placeholder="z.B. 32L Box, 45x30x24cm"
-                  />
-                  <p className="form-help">
-                    Größe/Volumen des Containers
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="location" className="form-label">
-                    Standort
-                  </label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    className="form-input"
-                    placeholder="z.B. Keller, Schlafzimmer, Gewächshaus"
-                  />
-                  <p className="form-help">
-                    Wo steht dein Setup?
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="expectedYield" className="form-label">
-                    Erwarteter Ertrag (g)
+                  <label htmlFor="incubation_temp_min" className="form-label">
+                    Inkubations-Temperatur Min. (°C)
                   </label>
                   <input
                     type="number"
-                    id="expectedYield"
-                    name="expectedYield"
+                    id="incubation_temp_min"
+                    name="incubation_temp_min"
                     className="form-input"
-                    placeholder="200"
+                    placeholder="20"
+                    step="0.5"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="incubation_temp_max" className="form-label">
+                    Inkubations-Temperatur Max. (°C)
+                  </label>
+                  <input
+                    type="number"
+                    id="incubation_temp_max"
+                    name="incubation_temp_max"
+                    className="form-input"
+                    placeholder="25"
+                    step="0.5"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="incubation_humidity" className="form-label">
+                    Inkubations-Luftfeuchtigkeit (%)
+                  </label>
+                  <input
+                    type="number"
+                    id="incubation_humidity"
+                    name="incubation_humidity"
+                    className="form-input"
+                    placeholder="70"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="colonization_duration" className="form-label">
+                    Durchwachsungszeit (Tage)
+                  </label>
+                  <input
+                    type="number"
+                    id="colonization_duration"
+                    name="colonization_duration"
+                    className="form-input"
+                    placeholder="14"
                     min="1"
                   />
                   <p className="form-help">
-                    Geschätzter Gesamtertrag in Gramm
+                    Geschätzte oder tatsächliche Zeit bis vollständiger Durchwachsung
                   </p>
+                </div>
+
+                <div className="form-group form-group--full">
+                  <label htmlFor="mycel_observations" className="form-label">
+                    Beobachtungen Myzel-Wachstum
+                  </label>
+                  <textarea
+                    id="mycel_observations"
+                    name="mycel_observations"
+                    className="form-input"
+                    rows="3"
+                    placeholder="Wachstumsgeschwindigkeit, Farbe, Dichte, Besonderheiten..."
+                  ></textarea>
+                </div>
+
+                {/* Foto-Upload Bereich für Myzel-Phase */}
+                <div className="form-group form-group--full">
+                  <label className="form-label">
+                    📸 Fotos - Myzel Wachstumsphase
+                  </label>
+                  <div className="photo-upload-area">
+                    <div className="photo-timeline">
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Tag 0<br/>Inokulation</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Tag 3-5<br/>Erste Fäden</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Tag 7-10<br/>Durchwachsung</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Tag 14+<br/>Vollständig</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Notizen */}
+            {/* 3. SUBSTRAT WACHSTUMSPHASE */}
             <div className="glass-card">
               <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
-                📝 Notizen & Ziele
+                🌾 Substrat Wachstumsphase
               </h2>
               
-              <div className="form-group">
-                <label htmlFor="notes" className="form-label">
-                  Zusätzliche Notizen
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  className="form-input"
-                  rows="4"
-                  placeholder="Besondere Beobachtungen, Experimente, Ziele oder andere wichtige Informationen..."
-                ></textarea>
-                <p className="form-help">
-                  Platz für deine persönlichen Notizen und Beobachtungen
-                </p>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="substrate_type" className="form-label required">
+                    Substrat-Typ
+                  </label>
+                  <div className="dropdown-with-manage">
+                    <select id="substrate_type" name="substrate_type" className="form-input" required>
+                      <option value="">Substrat-Typ auswählen...</option>
+                      <option value="masters_mix">Masters Mix</option>
+                      <option value="straw">Stroh</option>
+                      <option value="hardwood_sawdust">Laubholzsägemehl</option>
+                      <option value="coffee_grounds">Kaffeesatz</option>
+                      <option value="cardboard">Karton</option>
+                      <option value="logs">Holzstämme</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('substrate_types')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
+                  <p className="form-help">
+                    Hauptbestandteil des Substrats
+                  </p>
+                </div>
+
+                <div className="form-group form-group--full">
+                  <label htmlFor="substrate_composition" className="form-label required">
+                    Substrat-Zusammensetzung
+                  </label>
+                  <textarea
+                    id="substrate_composition"
+                    name="substrate_composition"
+                    className="form-input"
+                    rows="3"
+                    placeholder="z.B. Masters Mix: 500g Sojabohnen + 500g Buchensägemehl + 20g Gips + 1L Wasser"
+                    required
+                  ></textarea>
+                  <p className="form-help">
+                    Detaillierte Rezeptur mit Gewichtsangaben
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="substrate_weight" className="form-label required">
+                    Substratgewicht Nass (g)
+                  </label>
+                  <input
+                    type="number"
+                    id="substrate_weight"
+                    name="substrate_weight_g"
+                    className="form-input"
+                    placeholder="1000"
+                    min="1"
+                    required
+                  />
+                  <p className="form-help">
+                    Gesamtgewicht des fertigen Substrats
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="substrate_moisture" className="form-label">
+                    Feuchtigkeit (%)
+                  </label>
+                  <input
+                    type="number"
+                    id="substrate_moisture"
+                    name="substrate_moisture"
+                    className="form-input"
+                    placeholder="65"
+                    min="0"
+                    max="100"
+                  />
+                  <p className="form-help">
+                    Feuchtigkeitsgehalt des Substrats
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="ph_value" className="form-label">
+                    pH-Wert
+                  </label>
+                  <input
+                    type="number"
+                    id="ph_value"
+                    name="ph_value"
+                    className="form-input"
+                    placeholder="6.5"
+                    min="0"
+                    max="14"
+                    step="0.1"
+                  />
+                  <p className="form-help">
+                    pH-Wert des Substrats (optional)
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="sterilization_method" className="form-label">
+                    Sterilisations-Methode
+                  </label>
+                  <div className="dropdown-with-manage">
+                    <select id="sterilization_method" name="sterilization_method" className="form-input">
+                      <option value="">Methode auswählen...</option>
+                      <option value="pressure_cooker">Dampfdruckkochtopf</option>
+                      <option value="steam">Dampf-Sterilisation</option>
+                      <option value="boiling">Abkochen</option>
+                      <option value="lime">Kalkmilch</option>
+                      <option value="none">Keine Sterilisation</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('sterilization_methods')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
+                  <p className="form-help">
+                    Wie wurde das Substrat sterilisiert?
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="container_type" className="form-label">
+                    Container-Typ
+                  </label>
+                  <div className="dropdown-with-manage">
+                    <select id="container_type" name="container_type" className="form-input">
+                      <option value="">Container auswählen...</option>
+                      <option value="grow_bag">Grow Bag (Zuchtbeutel)</option>
+                      <option value="monotub">Monotub (große Box)</option>
+                      <option value="mason_jar">Mason Jar (Einmachglas)</option>
+                      <option value="tupperware">Tupperware</option>
+                      <option value="bucket">Eimer</option>
+                      <option value="bag">Plastikbeutel</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('container_types')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
+                  <p className="form-help">
+                    In welchem Behälter wird kultiviert?
+                  </p>
+                </div>
+
+                <div className="form-group form-group--full">
+                  <label htmlFor="substrate_notes" className="form-label">
+                    Substrat-Notizen
+                  </label>
+                  <textarea
+                    id="substrate_notes"
+                    name="substrate_notes"
+                    className="form-input"
+                    rows="2"
+                    placeholder="Besonderheiten bei der Zubereitung, Sterilisation, Beobachtungen..."
+                  ></textarea>
+                </div>
+
+                {/* Foto-Upload Bereich für Substrat-Phase */}
+                <div className="form-group form-group--full">
+                  <label className="form-label">
+                    📸 Fotos - Substrat Wachstumsphase
+                  </label>
+                  <div className="photo-upload-area">
+                    <div className="photo-timeline">
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Substrat-<br/>Vorbereitung</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Nach<br/>Sterilisation</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Im<br/>Container</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. FRUCHTUNGSPHASE */}
+            <div className="glass-card">
+              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
+                🍄 Fruchtungsphase
+              </h2>
+              
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="fruiting_start_date" className="form-label">
+                    Fruchtungs-Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    id="fruiting_start_date"
+                    name="fruiting_start_date"
+                    className="form-input"
+                  />
+                  <p className="form-help">
+                    Wann wurde die Fruchtungsphase eingeleitet?
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="fruiting_trigger" className="form-label">
+                    Fruchtungs-Auslöser
+                  </label>
+                  <div className="dropdown-with-manage">
+                    <select id="fruiting_trigger" name="fruiting_trigger" className="form-input">
+                      <option value="">Auslöser auswählen...</option>
+                      <option value="temperature_shock">Temperaturschock</option>
+                      <option value="humidity_increase">Luftfeuchtigkeit erhöhen</option>
+                      <option value="light_exposure">Lichtexposition</option>
+                      <option value="air_exchange">Luftaustausch</option>
+                      <option value="cold_water">Kaltes Wasser</option>
+                      <option value="scratching">Anritzen</option>
+                    </select>
+                    <button type="button" onclick="manageDropdown('fruiting_triggers')" className="manage-btn">
+                      ⚙️ Verwalten
+                    </button>
+                  </div>
+                  <p className="form-help">
+                    Womit wurde die Fruchtung ausgelöst?
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="fruiting_temp_min" className="form-label">
+                    Fruchtungs-Temperatur Min. (°C)
+                  </label>
+                  <input
+                    type="number"
+                    id="fruiting_temp_min"
+                    name="fruiting_temp_min"
+                    className="form-input"
+                    placeholder="15"
+                    step="0.5"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="fruiting_temp_max" className="form-label">
+                    Fruchtungs-Temperatur Max. (°C)
+                  </label>
+                  <input
+                    type="number"
+                    id="fruiting_temp_max"
+                    name="fruiting_temp_max"
+                    className="form-input"
+                    placeholder="20"
+                    step="0.5"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="fruiting_humidity_min" className="form-label">
+                    Luftfeuchtigkeit Min. (%)
+                  </label>
+                  <input
+                    type="number"
+                    id="fruiting_humidity_min"
+                    name="fruiting_humidity_min"
+                    className="form-input"
+                    placeholder="85"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="fruiting_humidity_max" className="form-label">
+                    Luftfeuchtigkeit Max. (%)
+                  </label>
+                  <input
+                    type="number"
+                    id="fruiting_humidity_max"
+                    name="fruiting_humidity_max"
+                    className="form-input"
+                    placeholder="95"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="light_hours" className="form-label">
+                    Belichtungszeit (h/Tag)
+                  </label>
+                  <input
+                    type="number"
+                    id="light_hours"
+                    name="light_hours"
+                    className="form-input"
+                    placeholder="12"
+                    min="0"
+                    max="24"
+                  />
+                  <p className="form-help">
+                    Stunden Licht pro Tag während Fruchtung
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="air_exchange_rate" className="form-label">
+                    Luftaustausch-Rate
+                  </label>
+                  <select id="air_exchange_rate" name="air_exchange_rate" className="form-input">
+                    <option value="">Rate auswählen...</option>
+                    <option value="low">Niedrig (1-2x/Tag)</option>
+                    <option value="medium">Mittel (3-4x/Tag)</option>
+                    <option value="high">Hoch (5+x/Tag)</option>
+                    <option value="continuous">Kontinuierlich</option>
+                  </select>
+                  <p className="form-help">
+                    Wie oft wird die Luft ausgetauscht?
+                  </p>
+                </div>
+
+                <div className="form-group form-group--full">
+                  <label htmlFor="fruiting_observations" className="form-label">
+                    Beobachtungen Fruchtungsphase
+                  </label>
+                  <textarea
+                    id="fruiting_observations"
+                    name="fruiting_observations"
+                    className="form-input"
+                    rows="3"
+                    placeholder="Pinning, Entwicklung der Fruchtkörper, Besonderheiten, Probleme..."
+                  ></textarea>
+                </div>
+
+                {/* Foto-Upload Bereich für Fruchtungs-Phase */}
+                <div className="form-group form-group--full">
+                  <label className="form-label">
+                    📸 Fotos - Fruchtungsphase
+                  </label>
+                  <div className="photo-upload-area">
+                    <div className="photo-timeline">
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Erste<br/>Pins</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Junge<br/>Pilze</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Vor<br/>Ernte</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                      <div className="photo-slot">
+                        <div className="photo-placeholder">
+                          <span>📷</span>
+                          <p>Nach<br/>Ernte</p>
+                        </div>
+                        <input type="file" accept="image/*" className="photo-input" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. ERTRÄGE */}
+            <div className="glass-card">
+              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center">
+                ⚖️ Erträge & Harvest-Tracking
+              </h2>
+              
+              <div className="harvest-tracker">
+                <div className="harvest-summary mb-4">
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <label>Gesamtertrag:</label>
+                      <span id="total_yield" className="yield-value">0 g</span>
+                    </div>
+                    <div className="summary-item">
+                      <label>Anzahl Ernten:</label>
+                      <span id="harvest_count" className="yield-value">0</span>
+                    </div>
+                    <div className="summary-item">
+                      <label>Biological Efficiency (BE%):</label>
+                      <span id="biological_efficiency" className="yield-value">0%</span>
+                    </div>
+                    <div className="summary-item">
+                      <label>Ø Ertrag pro Ernte:</label>
+                      <span id="average_harvest" className="yield-value">0 g</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="harvest-entries">
+                  <h3 className="text-md font-semibold mb-3">Einzelne Ernten:</h3>
+                  
+                  {/* Erste Ernte (Template) */}
+                  <div className="harvest-entry" id="harvest_1">
+                    <div className="harvest-header">
+                      <h4>🍄 1. Ernte (Erste Flush)</h4>
+                      <button type="button" onclick="removeHarvest(1)" className="remove-harvest">✕</button>
+                    </div>
+                    
+                    <div className="harvest-fields">
+                      <div className="form-group">
+                        <label htmlFor="harvest_1_date" className="form-label">
+                          Erntedatum
+                        </label>
+                        <input
+                          type="date"
+                          id="harvest_1_date"
+                          name="harvests[0][date]"
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="harvest_1_weight" className="form-label">
+                          Gewicht (g)
+                        </label>
+                        <input
+                          type="number"
+                          id="harvest_1_weight"
+                          name="harvests[0][weight_g]"
+                          className="form-input harvest-weight"
+                          placeholder="0"
+                          min="0"
+                          step="0.1"
+                          onchange="calculateYield()"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="harvest_1_quality" className="form-label">
+                          Qualität
+                        </label>
+                        <select id="harvest_1_quality" name="harvests[0][quality]" className="form-input">
+                          <option value="">Bewertung...</option>
+                          <option value="excellent">Exzellent</option>
+                          <option value="good">Gut</option>
+                          <option value="average">Durchschnitt</option>
+                          <option value="poor">Schwach</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group form-group--full">
+                        <label htmlFor="harvest_1_notes" className="form-label">
+                          Notizen zur Ernte
+                        </label>
+                        <textarea
+                          id="harvest_1_notes"
+                          name="harvests[0][notes]"
+                          className="form-input"
+                          rows="2"
+                          placeholder="Größe, Form, Farbe, Besonderheiten..."
+                        ></textarea>
+                      </div>
+
+                      <div className="form-group form-group--full">
+                        <label className="form-label">
+                          📸 Fotos - Ernte
+                        </label>
+                        <div className="photo-upload-area">
+                          <div className="photo-timeline harvest-photos">
+                            <div className="photo-slot">
+                              <div className="photo-placeholder">
+                                <span>📷</span>
+                                <p>Geerntete<br/>Pilze</p>
+                              </div>
+                              <input type="file" accept="image/*" className="photo-input" name="harvests[0][photos][]" />
+                            </div>
+                            <div className="photo-slot">
+                              <div className="photo-placeholder">
+                                <span>📷</span>
+                                <p>Nach<br/>Ernte</p>
+                              </div>
+                              <input type="file" accept="image/*" className="photo-input" name="harvests[0][photos][]" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="add-harvest-section">
+                    <button type="button" onclick="addHarvest()" className="btn btn-glass w-full">
+                      ➕ Weitere Ernte hinzufügen
+                    </button>
+                  </div>
+                </div>
+
+                <div className="expected-yield mt-4">
+                  <div className="form-group">
+                    <label htmlFor="expected_total_yield" className="form-label">
+                      Erwarteter Gesamtertrag (g)
+                    </label>
+                    <input
+                      type="number"
+                      id="expected_total_yield"
+                      name="expected_total_yield"
+                      className="form-input"
+                      placeholder="300"
+                      min="0"
+                    />
+                    <p className="form-help">
+                      Geschätzte Gesamtmenge für alle Ernten
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

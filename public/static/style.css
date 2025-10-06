@@ -541,6 +541,252 @@ body {
   }
 }
 
+/* NEUE FORM STYLES FÜR PROTOKOLL-FORMULAR */
+
+/* Dropdown mit Manage-Button */
+.dropdown-with-manage {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.dropdown-with-manage select {
+  flex: 1;
+}
+
+.manage-btn {
+  padding: 0.5rem 0.75rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.manage-btn:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Foto-Upload Bereiche */
+.photo-upload-area {
+  padding: 1rem;
+  background: rgba(var(--primary-rgb, 79, 70, 229), 0.05);
+  border: 2px dashed rgba(var(--primary-rgb, 79, 70, 229), 0.2);
+  border-radius: var(--border-radius);
+  margin-top: 0.5rem;
+}
+
+.photo-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  max-width: 100%;
+}
+
+.photo-timeline.harvest-photos {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+}
+
+.photo-slot {
+  position: relative;
+}
+
+.photo-placeholder {
+  width: 100%;
+  min-height: 100px;
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.photo-placeholder:hover {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb, 79, 70, 229), 0.1);
+}
+
+.photo-placeholder span {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.photo-placeholder p {
+  font-size: 0.75rem;
+  text-align: center;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.photo-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Harvest Tracker Styles */
+.harvest-tracker {
+  background: rgba(var(--primary-rgb, 79, 70, 229), 0.02);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.harvest-summary {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.summary-item label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.yield-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Harvest Entry Styles */
+.harvest-entry {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.harvest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.harvest-header h4 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1.125rem;
+}
+
+.remove-harvest {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.remove-harvest:hover {
+  background: #EF4444;
+  color: white;
+  transform: scale(1.1);
+}
+
+.harvest-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.add-harvest-section {
+  margin-top: 1rem;
+}
+
+/* Mobile Responsive für neue Elemente */
+/* Animations für Benachrichtigungen */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .dropdown-with-manage {
+    flex-direction: column;
+  }
+  
+  .manage-btn {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+  }
+  
+  .photo-timeline {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .harvest-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (min-width: 900px) {
   .stats-grid {
     grid-template-columns: repeat(4, 1fr);

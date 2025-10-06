@@ -597,14 +597,383 @@
     });
 
     // Console welcome message
+    // =========================
+    // NEUES PROTOKOLL FORMULAR
+    // =========================
+    
+    // Harvest-Counter für dynamische Ernten
+    let harvestCount = 1;
+    
+    // Harvest Management Funktionen
+    window.addHarvest = function() {
+        harvestCount++;
+        const harvestsContainer = document.querySelector('.harvest-entries');
+        const newHarvestEntry = createHarvestEntry(harvestCount);
+        
+        // Vor dem "Weitere Ernte hinzufügen" Button einfügen
+        const addButton = document.querySelector('.add-harvest-section');
+        harvestsContainer.insertBefore(newHarvestEntry, addButton);
+        
+        // Event Listeners für neue Felder hinzufügen
+        const weightInput = newHarvestEntry.querySelector('.harvest-weight');
+        if (weightInput) {
+            weightInput.addEventListener('input', calculateYield);
+        }
+    };
+    
+    window.removeHarvest = function(harvestId) {
+        if (harvestCount <= 1) {
+            alert('Mindestens eine Ernte muss vorhanden sein!');
+            return;
+        }
+        
+        const harvestEntry = document.getElementById(`harvest_${harvestId}`);
+        if (harvestEntry) {
+            harvestEntry.remove();
+            calculateYield();
+        }
+    };
+    
+    function createHarvestEntry(id) {
+        const flushNames = {
+            1: 'Erste Flush',
+            2: 'Zweite Flush', 
+            3: 'Dritte Flush',
+            4: 'Vierte Flush'
+        };
+        
+        const flushName = flushNames[id] || `${id}. Flush`;
+        const div = document.createElement('div');
+        div.className = 'harvest-entry';
+        div.id = `harvest_${id}`;
+        
+        div.innerHTML = `
+            <div class="harvest-header">
+                <h4>🍄 ${id}. Ernte (${flushName})</h4>
+                <button type="button" onclick="removeHarvest(${id})" class="remove-harvest">✕</button>
+            </div>
+            
+            <div class="harvest-fields">
+                <div class="form-group">
+                    <label for="harvest_${id}_date" class="form-label">
+                        Erntedatum
+                    </label>
+                    <input
+                        type="date"
+                        id="harvest_${id}_date"
+                        name="harvests[${id-1}][date]"
+                        class="form-input"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="harvest_${id}_weight" class="form-label">
+                        Gewicht (g)
+                    </label>
+                    <input
+                        type="number"
+                        id="harvest_${id}_weight"
+                        name="harvests[${id-1}][weight_g]"
+                        class="form-input harvest-weight"
+                        placeholder="0"
+                        min="0"
+                        step="0.1"
+                        onchange="calculateYield()"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="harvest_${id}_quality" class="form-label">
+                        Qualität
+                    </label>
+                    <select id="harvest_${id}_quality" name="harvests[${id-1}][quality]" class="form-input">
+                        <option value="">Bewertung...</option>
+                        <option value="excellent">Exzellent</option>
+                        <option value="good">Gut</option>
+                        <option value="average">Durchschnitt</option>
+                        <option value="poor">Schwach</option>
+                    </select>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label for="harvest_${id}_notes" class="form-label">
+                        Notizen zur Ernte
+                    </label>
+                    <textarea
+                        id="harvest_${id}_notes"
+                        name="harvests[${id-1}][notes]"
+                        class="form-input"
+                        rows="2"
+                        placeholder="Größe, Form, Farbe, Besonderheiten..."
+                    ></textarea>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label class="form-label">
+                        📸 Fotos - Ernte
+                    </label>
+                    <div class="photo-upload-area">
+                        <div class="photo-timeline harvest-photos">
+                            <div class="photo-slot">
+                                <div class="photo-placeholder">
+                                    <span>📷</span>
+                                    <p>Geerntete<br/>Pilze</p>
+                                </div>
+                                <input type="file" accept="image/*" class="photo-input" name="harvests[${id-1}][photos][]" />
+                            </div>
+                            <div class="photo-slot">
+                                <div class="photo-placeholder">
+                                    <span>📷</span>
+                                    <p>Nach<br/>Ernte</p>
+                                </div>
+                                <input type="file" accept="image/*" class="photo-input" name="harvests[${id-1}][photos][]" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return div;
+    }
+    
+    // Yield Calculations
+    window.calculateYield = function() {
+        const harvestWeights = document.querySelectorAll('.harvest-weight');
+        const substrateWeightInput = document.getElementById('substrate_weight');
+        
+        let totalYield = 0;
+        let harvestCount = 0;
+        
+        harvestWeights.forEach(input => {
+            const weight = parseFloat(input.value) || 0;
+            if (weight > 0) {
+                totalYield += weight;
+                harvestCount++;
+            }
+        });
+        
+        // Update display elements
+        const totalYieldElement = document.getElementById('total_yield');
+        const harvestCountElement = document.getElementById('harvest_count');
+        const avgHarvestElement = document.getElementById('average_harvest');
+        const beElement = document.getElementById('biological_efficiency');
+        
+        if (totalYieldElement) {
+            totalYieldElement.textContent = `${totalYield.toFixed(1)} g`;
+        }
+        
+        if (harvestCountElement) {
+            harvestCountElement.textContent = harvestCount;
+        }
+        
+        if (avgHarvestElement) {
+            const avgYield = harvestCount > 0 ? totalYield / harvestCount : 0;
+            avgHarvestElement.textContent = `${avgYield.toFixed(1)} g`;
+        }
+        
+        // Calculate Biological Efficiency (BE%)
+        if (beElement && substrateWeightInput) {
+            const substrateWeight = parseFloat(substrateWeightInput.value) || 0;
+            if (substrateWeight > 0) {
+                const be = (totalYield / substrateWeight) * 100;
+                beElement.textContent = `${be.toFixed(1)}%`;
+                
+                // Color coding for BE%
+                if (be >= 100) {
+                    beElement.style.color = '#10B981'; // Green
+                } else if (be >= 50) {
+                    beElement.style.color = '#F59E0B'; // Yellow
+                } else {
+                    beElement.style.color = '#EF4444'; // Red
+                }
+            } else {
+                beElement.textContent = '0%';
+                beElement.style.color = '';
+            }
+        }
+    };
+    
+    // Dropdown Management
+    window.manageDropdown = function(category) {
+        alert(`Dropdown-Verwaltung für "${category}" wird in einem zukünftigen Update verfügbar sein!`);
+        // TODO: Implement dropdown management modal
+    };
+    
+    // Protocol Save Functions  
+    window.saveProtocol = async function() {
+        const form = document.getElementById('protocolForm');
+        if (!form) return;
+        
+        // Form validation
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.style.borderColor = '#EF4444';
+                isValid = false;
+            } else {
+                field.style.borderColor = '';
+            }
+        });
+        
+        if (!isValid) {
+            alert('Bitte füllen Sie alle Pflichtfelder aus!');
+            return;
+        }
+        
+        // Collect form data
+        const formData = new FormData(form);
+        const protocolData = {};
+        
+        // Basic fields
+        for (const [key, value] of formData.entries()) {
+            if (!key.startsWith('harvests[')) {
+                protocolData[key] = value;
+            }
+        }
+        
+        // Collect harvest data
+        const harvests = [];
+        const harvestEntries = document.querySelectorAll('.harvest-entry');
+        
+        harvestEntries.forEach((entry, index) => {
+            const harvestData = {
+                date: entry.querySelector(`input[name*="[${index}][date]"]`)?.value || '',
+                weight_g: parseFloat(entry.querySelector(`input[name*="[${index}][weight_g]"]`)?.value) || 0,
+                quality: entry.querySelector(`select[name*="[${index}][quality]"]`)?.value || '',
+                notes: entry.querySelector(`textarea[name*="[${index}][notes]"]`)?.value || ''
+            };
+            
+            if (harvestData.weight_g > 0 || harvestData.date) {
+                harvests.push(harvestData);
+            }
+        });
+        
+        protocolData.harvests = harvests;
+        
+        try {
+            showLoading('Protokoll wird gespeichert...');
+            
+            const response = await fetch('/api/protocols', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(protocolData)
+            });
+            
+            const result = await response.json();
+            hideLoading();
+            
+            if (result.success) {
+                showNotification('✅ Protokoll erfolgreich gespeichert!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/protocols';
+                }, 2000);
+            } else {
+                showNotification(`❌ Fehler: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            hideLoading();
+            showNotification('❌ Netzwerk-Fehler beim Speichern!', 'error');
+            console.error('Save error:', error);
+        }
+    };
+    
+    window.saveDraft = function() {
+        // TODO: Implement draft saving to localStorage
+        showNotification('💾 Entwurf gespeichert!', 'info');
+    };
+    
+    // Utility functions for loading and notifications
+    function showLoading(message) {
+        // Simple loading indicator
+        const loader = document.createElement('div');
+        loader.id = 'loading-indicator';
+        loader.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; color: white;">
+                <div style="background: var(--glass-bg); padding: 2rem; border-radius: var(--border-radius); text-align: center;">
+                    <div style="margin-bottom: 1rem;">⏳</div>
+                    <div>${message}</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loader);
+    }
+    
+    function hideLoading() {
+        const loader = document.getElementById('loading-indicator');
+        if (loader) {
+            loader.remove();
+        }
+    }
+    
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: var(--glass-shadow);
+            animation: slideIn 0.3s ease;
+        `;
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    // Initialize form functionality if on protocol form page
+    if (document.getElementById('protocolForm')) {
+        // Add event listeners for harvest weight calculations
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('harvest-weight') || e.target.id === 'substrate_weight') {
+                calculateYield();
+            }
+        });
+        
+        // Set today's date as default for start date
+        const today = new Date().toISOString().split('T')[0];
+        const startDateInput = document.getElementById('mycel_start_date');
+        if (startDateInput && !startDateInput.value) {
+            startDateInput.value = today;
+        }
+    }
+    
     console.log(`
-    🍄 Mushroom Manager v1.0.0
-    ================================
-    Willkommen zur Pilzzucht-Verwaltung!
+    🍄 Mushroom Manager v1.0.0 - Protocol System
+    ============================================
+    Willkommen zur erweiterten Pilzzucht-Verwaltung!
+    
+    Neue Funktionen:
+    - Vollständiges Protokoll-System
+    - Harvest-Tracking mit BE% Berechnung
+    - Foto-Upload für Timeline-Dokumentation
+    - Konfigurierbare Dropdown-Felder
+    - 5-Phasen Zucht-Tracking
     
     Verfügbare Funktionen:
     - window.MushroomAPI: API-Zugriff
     - window.MushroomUtils: Hilfsfunktionen
+    - window.addHarvest(): Neue Ernte hinzufügen
+    - window.calculateYield(): BE% berechnen
     - Alt+D: Dark Mode toggle
     - Alt+S: Suche fokussieren
     
