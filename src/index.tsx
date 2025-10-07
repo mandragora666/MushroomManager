@@ -5,6 +5,10 @@ import { renderer } from './renderer'
 import { DatabaseService } from './database'
 import type { Env } from './types'
 
+// CACHE-FIX-2024-10-06: Force Cloudflare rebuild with new version
+// UI FIXES: Protocol labels now show "Art:", "Phase:", "Temperatur:", "Start:" 
+const CACHE_BUSTER_VERSION = "1.0.1-cache-fix"
+
 const app = new Hono<{ Bindings: Env }>()
 
 // Enable CORS for API routes
