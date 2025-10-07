@@ -1,0 +1,14 @@
+{
+  "trigger": "FORCE_CLOUDFLARE_REBUILD",
+  "timestamp": 1759764000,
+  "version": "1.0.1-cache-fix", 
+  "commit": "a03f840",
+  "changes": {
+    "ui_fixes": "Protocol labels now show proper formatting with colons",
+    "cache_busting": "Implemented aggressive cache invalidation",
+    "config_cleanup": "Removed conflicting wrangler configurations",
+    "expected_result": "Art: Pleurotus ostreatus (with colon and space)"
+  },
+  "deployment_status": "RADICAL_REBUILD_FORCED",
+  "instructions": "This file forces Cloudflare Pages to rebuild completely"
+}
